@@ -1,0 +1,2 @@
+-r HL_Conferencia_NFe/requirements.txt
+pyinstaller==6.21.0

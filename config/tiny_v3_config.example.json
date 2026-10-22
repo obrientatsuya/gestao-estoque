@@ -1,0 +1,5 @@
+{
+  "client_id": "CONFIGURE_CLIENT_ID",
+  "client_secret": "CONFIGURE_CLIENT_SECRET",
+  "redirect_uri": "http://localhost:8766/callback"
+}

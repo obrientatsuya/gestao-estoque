@@ -1,0 +1,134 @@
+import json
+from pathlib import Path
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+from urllib.error import HTTPError
+
+from box_insights import BoxInsights
+from shared_sales import SharedSales
+
+
+class Tiny:
+    def __init__(self):
+        self.calls = []
+        self.denied = False
+
+    def request_json(self, method, path):
+        assert method == 'GET'
+        assert '/notas' not in path
+        self.calls.append(path)
+        if '/produtos?' in path:
+            return {'body':{'itens':[{'id':1,'sku':'001','descricao':'Produto'}]}}
+        if 'logs-movimentacao' in path:
+            if self.denied:
+                error = HTTPError(path,403,'Forbidden',{},None)
+                error.close()
+                raise error
+            return {'body':{'itens':[
+                {'id':1,'tipo':'S','quantidade':3,'valor':10},
+                {'id':1,'tipo':'S','quantidade':3,'valor':10},
+                {'id':2,'tipo':'S','quantidade':4,'valor':0},
+                {'id':3,'tipo':'E','quantidade':5,'valor':10},
+                {'id':4,'tipo':'S','quantidade':2,'valor':7}],
+                'paginacao':{'offset':0,'limit':100,'total':5}}}
+        return {'body':{'disponivel':8,'saldo':8,'reservado':0,'nome':'Produto'}}
+
+
+class TestShared(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.client = Tiny()
+        self.insights = BoxInsights(Path(self.tmp.name)/'cache.db',lambda:self.client)
+        self.service = SharedSales(self.insights,'https://example.invalid','public',self.tmp.name)
+        self.cloud = {}
+        self.published = []
+
+        def request(path,payload=None):
+            if path.startswith('rpc/'):
+                self.published.append(payload)
+                self.assertEqual(set(payload),{'p_chave','p_resumos'})
+                for r in payload['p_resumos']:
+                    self.assertEqual(set(r),{'sku','vendas','unidades','inicio','fim','calculado_em'})
+                    self.cloud[r['sku']] = {**r,'atualizado_em':r['calculado_em']}
+                return [self.cloud[r['sku']] for r in payload['p_resumos']]
+            if path.startswith('estoque?'):
+                return [{'sku':'001'}]
+            return list(self.cloud.values())
+
+        self.service.request = request
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def done(self,jid):
+        deadline = time.monotonic()+4
+        while self.service.job(jid)['status']!='concluido' and time.monotonic()<deadline:
+            time.sleep(.01)
+        self.assertEqual(self.service.job(jid)['status'],'concluido')
+        return self.service.job(jid)
+
+    def test_reader_only_reads_summary_without_tiny_authentication(self):
+        self.cloud['001']={'sku':'001','vendas':3,'unidades':5}
+        job=self.done(self.service.start(['001'],refresh=True))
+        self.assertEqual(job['dados']['itens'][0]['vendas'],3)
+        self.assertFalse(self.client.calls)
+        self.assertFalse(self.published)
+
+    def test_unknown_is_not_zero_and_old_invoice_counts_are_not_used(self):
+        data=self.service.cache(['001'])
+        self.assertIsNone(data['itens'][0]['vendas'])
+        self.assertFalse(data['historico_completo'])
+
+    def test_publisher_uploads_only_aggregates_and_tiny_is_get_only(self):
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(['001'],refresh=True))
+        self.assertEqual(job['erros'],[])
+        self.assertEqual(self.cloud['001']['vendas'],2)
+        self.assertEqual(self.cloud['001']['unidades'],5)
+        self.assertEqual(len(self.published),1)
+        self.assertTrue(any('logs-movimentacao' in p for p in self.client.calls))
+        self.assertFalse(any('/notas' in p for p in self.client.calls))
+
+    def test_failure_preserves_previous_summary_and_does_not_publish_zero(self):
+        self.cloud['001']={'sku':'001','vendas':42,'unidades':50}
+        self.client.denied=True
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(['001'],refresh=True))
+        self.assertIn('403',job['erros'][0])
+        self.assertEqual(job['dados']['itens'][0]['vendas'],42)
+        self.assertFalse(self.published)
+
+    def test_missing_price_is_not_published(self):
+        original=self.client.request_json
+        def no_value(method,path):
+            response=original(method,path)
+            if 'logs-movimentacao' in path:
+                for r in response['body']['itens']:
+                    r.pop('valor',None)
+            return response
+        self.client.request_json=no_value
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(['001'],refresh=True))
+        self.assertTrue(job['erros'])
+        self.assertFalse(self.published)
+
+    def test_explicit_bulk_reads_skus_not_invoices(self):
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(None,refresh=True))
+        self.assertEqual(job['total'],1)
+        self.assertEqual(len(self.published),1)
+
+    def test_cloud_pagination_beyond_1000(self):
+        calls=[]
+        def pages(path,payload=None):
+            calls.append(path)
+            return [{'sku':str(i),'vendas':0,'unidades':0} for i in range(1000)] if len(calls)==1 else [{'sku':'last','vendas':1,'unidades':1}]
+        self.service.request=pages
+        self.assertEqual(len(self.service.all_shared()),1001)
+        self.assertIn('offset=1000',calls[1])
+
+
+if __name__=='__main__':
+    unittest.main()

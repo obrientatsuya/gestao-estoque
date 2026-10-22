@@ -1,0 +1,5111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HL Coordenadas</title>
+<script src="/ui/runtime-config.js"></script>
+<script>document.documentElement.dataset.theme = localStorage.getItem("hl-coordenadas-theme") || "dark";</script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --roxo:        #7c3aed;
+  --roxo-claro:  #a78bfa;
+  --roxo-escuro: #4c1d95;
+  --roxo-fundo:  #1e1030;
+  --preto:       #000000;
+  --preto2:      #0d0d0d;
+  --preto3:      #141414;
+  --preto4:      #1c1c1c;
+  --preto5:      #252525;
+  --branco:      #ffffff;
+  --cinza1:      #e5e5e5;
+  --cinza2:      #a0a0a0;
+  --cinza3:      #5a5a5a;
+  --cinza4:      #333333;
+  --erro:        #ff4444;
+  --ok:          #cccccc;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --preto:       #eef1f5;
+  --preto2:      #ffffff;
+  --preto3:      #ffffff;
+  --preto4:      #e7ebf1;
+  --preto5:      #dce2ea;
+  --branco:      #172033;
+  --cinza1:      #283448;
+  --cinza2:      #58657a;
+  --cinza3:      #768297;
+  --cinza4:      #c5ceda;
+  --roxo-fundo:  #f1ebff;
+  --erro:        #c62828;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--preto);
+  color: var(--branco);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
+}
+
+/* ===== HEADER ===== */
+#header {
+  background: var(--preto2);
+  border-bottom: 2px solid var(--roxo);
+  height: 58px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+#header-esq {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+#header h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--branco);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+#header-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--roxo-claro);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+#header-dir {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cinza2);
+}
+.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+.dot.offline { background: var(--erro); }
+.dot.aviso   { background: #f59e0b; }
+
+.btn-header {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--preto4);
+  color: var(--cinza2);
+  border: 1px solid var(--cinza4);
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-header:hover { border-color: var(--roxo-claro); color: var(--branco); }
+.module-link { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.theme-toggle { width: 38px; padding: 8px 0; font-size: 16px; }
+
+#headerMenu { position: relative; }
+#headerMenu summary {
+  list-style: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--preto4);
+  color: var(--branco);
+  border: 1px solid var(--roxo);
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#headerMenu summary::-webkit-details-marker { display: none; }
+#headerMenu[open] summary {
+  border-color: var(--roxo-claro);
+  background: #1b1028;
+}
+.header-menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: 220px;
+  padding: 8px;
+  background: var(--preto3);
+  border: 1px solid var(--roxo);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+  display: grid;
+  gap: 6px;
+}
+.header-menu-pop .btn-header {
+  width: 100%;
+  text-align: left;
+  border-color: var(--cinza4);
+}
+
+/* ===== AVISO KEEPALIVE ===== */
+#avisoKeepalive {
+  display: none;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #1a1000;
+  border: 1px solid #7a4a00;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #e0b030;
+}
+
+/* ===== AVISO SERVIDOR ERP (TINY) ===== */
+#avisoErp {
+  display: none !important;
+  border-bottom: 2px solid;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+#avisoErp.online {
+  display: none;
+  background: #061a10;
+  border-color: #166534;
+  color: #86efac;
+}
+#avisoErp.offline {
+  display: none !important;
+  background: #1a0d00;
+  border-color: #7a3d00;
+  color: #fbbf24;
+}
+#avisoErp.verificando {
+  display: none !important;
+  background: var(--preto3);
+  border-color: var(--cinza4);
+  color: var(--cinza2);
+}
+
+#statusErpIndicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cinza2);
+  white-space: nowrap;
+}
+#statusErpIndicator .dot { width: 9px; height: 9px; }
+#statusErpIndicator .dot.erp-on  { background: #3b82f6; }
+#statusErpIndicator .dot.erp-off { background: #f59e0b; }
+#statusErpIndicator .dot.erp-check { background: var(--cinza3); }
+
+/* ===== LAYOUT PRINCIPAL ===== */
+#main {
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  height: calc(100vh - 58px);
+}
+
+/* ===== COLUNA ESQUERDA ===== */
+#colunaEsq {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-right: 1px solid var(--cinza4);
+  overflow-y: auto;
+  background: var(--preto);
+}
+#colunaEsq::-webkit-scrollbar { width: 4px; }
+#colunaEsq::-webkit-scrollbar-track { background: transparent; }
+#colunaEsq::-webkit-scrollbar-thumb { background: var(--cinza4); border-radius: 2px; }
+
+/* ===== COLUNA DIREITA ===== */
+/* (regras movidas para baixo, após zoom-pulse) */
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--preto3);
+  border: 1px solid var(--cinza4);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.card-principal {
+  border-color: rgba(124,58,237,0.75);
+  background: linear-gradient(180deg, #151018 0%, var(--preto3) 100%);
+}
+.card-principal.compacto {
+  padding: 10px 12px;
+}
+.card-principal.compacto .card-titulo {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+}
+.busca-inline {
+  display: grid;
+  grid-template-columns: 1fr 82px;
+  gap: 8px;
+  align-items: end;
+}
+.busca-inline label {
+  margin-top: 0;
+}
+.busca-inline input {
+  padding: 9px 11px;
+  min-height: 42px;
+}
+.busca-inline .btn-buscar {
+  margin-top: 0;
+  height: 42px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+.card-principal.compacto .helper-text {
+  margin-top: 6px;
+  font-size: 11px;
+}
+.card-titulo {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--roxo-claro);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--cinza4);
+  padding-bottom: 8px;
+}
+.helper-text {
+  font-size: 12px;
+  color: var(--cinza2);
+  line-height: 1.45;
+  margin-top: 7px;
+}
+.helper-strip {
+  background: #0d0a12;
+  border: 1px solid #2a193b;
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--cinza2);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.helper-strip strong {
+  display: inline;
+  color: var(--roxo-claro);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 6px;
+}
+.position-panel {
+  background: #080808;
+  border: 1px dashed #4a2090;
+  border-radius: 8px;
+}
+.position-panel summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 13px 15px;
+  color: var(--roxo-claro);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.position-panel summary::-webkit-details-marker { display: none; }
+.position-panel summary::after {
+  content: "+";
+  color: var(--branco);
+  font-size: 18px;
+  line-height: 1;
+}
+.position-panel[open] summary::after { content: "-"; }
+.position-panel-body {
+  padding: 0 15px 15px;
+  border-top: 1px solid #241430;
+}
+
+/* ===== LABELS E INPUTS ===== */
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cinza2);
+  margin-bottom: 5px;
+  margin-top: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+label:first-of-type { margin-top: 0; }
+
+.operador-opcoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.operador-opcao {
+  background: var(--preto4);
+  color: var(--cinza1);
+  border: 1px solid var(--cinza3);
+  min-height: 42px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.operador-opcao.ativo {
+  background: var(--roxo);
+  color: var(--branco);
+  border-color: var(--roxo-claro);
+}
+
+input, select {
+  width: 100%;
+  padding: 11px 13px;
+  font-size: 17px;
+  font-weight: 700;
+  background: var(--preto);
+  border: 2px solid var(--cinza4);
+  border-radius: 7px;
+  color: var(--branco);
+  transition: border-color 0.15s;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--roxo);
+}
+input::placeholder { color: var(--cinza3); font-weight: 400; font-size: 15px; }
+select option { background: var(--preto3); }
+
+.input-prefixo {
+  display: flex;
+  align-items: stretch;
+}
+.prefixo-tag {
+  background: var(--roxo);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  padding: 11px 13px;
+  border-radius: 7px 0 0 7px;
+  border: 2px solid var(--roxo);
+  border-right: none;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+.input-prefixo input {
+  border-radius: 0 7px 7px 0;
+  border-left: none;
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ===== BOTOES ===== */
+button {
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.4; cursor: default; }
+
+.btn-buscar { background: var(--roxo);    color: #fff; width: 100%; margin-top: 10px; font-size: 16px; }
+.btn-salvar { background: var(--branco);  color: var(--preto); width: 100%; margin-top: 12px; font-size: 16px; }
+.btn-novo   { background: var(--preto4);  color: var(--branco); border: 2px solid var(--roxo); width: 100%; margin-top: 8px; }
+.btn-danger { background: #1a0000; color: var(--erro); border: 1px solid #660000; width: 100%; margin-top: 6px; font-size: 13px; }
+.btn-editar-sku { background: var(--preto4); color: var(--cinza1); border: 1px solid var(--cinza3); width: 100%; margin-top: 6px; font-size: 13px; }
+
+/* ===== RESULTADO DA BUSCA ===== */
+#blocoResultado {
+  background: var(--roxo-fundo);
+  border: 2px solid var(--roxo);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: none;
+}
+#blocoResultado.visivel { display: block; }
+.posicao-grande {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--branco);
+  letter-spacing: 3px;
+  word-break: break-all;
+  line-height: 1.2;
+}
+.resultado-sub { font-size: 13px; color: var(--cinza2); margin-top: 5px; line-height: 1.6; }
+
+/* ===== MENSAGENS ===== */
+.msg {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 13px;
+  border-radius: 7px;
+  margin-top: 8px;
+  display: none;
+}
+.msg.visivel { display: block; }
+.msg.erro  { background: #1a0000; color: #ff8888; border: 1px solid #660000; }
+.msg.ok    { background: #0d1a0d; color: var(--cinza1); border: 1px solid var(--cinza4); }
+.msg.info  { background: var(--preto4); color: var(--cinza2); border: 1px solid var(--cinza4); }
+
+/* ===== BANNER NAO ENCONTRADO ===== */
+#bannerNaoEncontrado {
+  background: #1a0d00;
+  border: 2px solid #7a3d00;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: none;
+}
+#bannerNaoEncontrado.visivel { display: block; }
+#bannerNaoEncontrado p { font-size: 15px; font-weight: 700; color: #e0a030; margin-bottom: 8px; }
+
+/* ===== FORMULARIO ===== */
+#cardFormulario { display: none; }
+#cardFormulario.visivel { display: block; }
+
+/* ===== MODAL EDITAR SKU ===== */
+#modalOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#modalOverlay.visivel { display: flex; }
+#modalBox {
+  background: var(--preto3);
+  border: 2px solid var(--roxo);
+  border-radius: 12px;
+  padding: 24px;
+  width: 360px;
+  max-width: 90vw;
+}
+#modalBox.wide { width: 480px; }
+#modalBox h2 {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--branco);
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.modal-aviso {
+  font-size: 13px;
+  color: var(--cinza2);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+.modal-btns button { flex: 1; }
+.btn-modal-ok     { background: var(--roxo);  color: #fff; }
+.btn-modal-cancel { background: var(--preto4); color: var(--cinza2); border: 1px solid var(--cinza4); }
+.btn-modal-delete { background: #1a0000; color: var(--erro); border: 1px solid #660000; }
+
+/* ===== PAINEL VISAO GERAL ===== */
+/* (regras de overflow/scroll definidas no bloco FIX SCROLL abaixo) */
+#painelSetores::-webkit-scrollbar { width: 4px; }
+#painelSetores::-webkit-scrollbar-track { background: transparent; }
+#painelSetores::-webkit-scrollbar-thumb { background: var(--cinza4); border-radius: 2px; }
+
+/* Wrapper com zoom via CSS transform — ver bloco FIX SCROLL */
+
+/* Barra de filtro/busca do painel */
+#painelFiltroBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#painelFiltroBar input {
+  flex: 1;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--preto3);
+  border: 1px solid var(--cinza4);
+  border-radius: 6px;
+  color: var(--branco);
+}
+#painelFiltroBar input:focus { outline: none; border-color: var(--roxo); }
+#painelFiltroBar input::placeholder { color: var(--cinza3); font-weight: 400; }
+#painelFiltroBar select {
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--preto3);
+  border: 1px solid var(--cinza4);
+  border-radius: 6px;
+  color: var(--branco);
+}
+#btnExpandirTudo {
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--preto4);
+  color: var(--cinza2);
+  border: 1px solid var(--cinza4);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s;
+}
+#btnExpandirTudo:hover { border-color: var(--roxo-claro); color: var(--branco); }
+.zoom-controls {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.zoom-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  background: var(--preto4);
+  color: var(--branco);
+  border: 1px solid var(--cinza4);
+  border-radius: 6px;
+}
+.zoom-btn:hover {
+  border-color: var(--roxo-claro);
+  background: #1b1028;
+}
+
+/* Indicador de zoom */
+#zoomHint {
+  font-size: 10px;
+  color: var(--cinza3);
+  white-space: nowrap;
+  padding: 4px 8px;
+  background: var(--preto3);
+  border: 1px solid var(--cinza4);
+  border-radius: 5px;
+  flex-shrink: 0;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.dir-helper {
+  font-size: 11px;
+  color: var(--cinza3);
+  margin: -4px 0 9px;
+  line-height: 1.35;
+}
+
+.dir-titulo {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--roxo-claro);
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--cinza4);
+  padding-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.dir-titulo-stats {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cinza3);
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+/* ===== SETOR BLOCO ===== */
+.setor-bloco {
+  background: var(--preto3);
+  border: 1px solid var(--cinza4);
+  border-radius: 10px;
+  margin-bottom: 7px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.setor-bloco.expandido { border-color: var(--setor-cor, #4a2090); }
+.setor-bloco.oculto { display: none; }
+
+.setor-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 13px;
+  cursor: pointer;
+  user-select: none;
+  gap: 10px;
+}
+.setor-cabecalho { border-left: 5px solid var(--setor-cor, var(--roxo)); background: var(--setor-fundo, transparent); }
+.setor-cabecalho:hover { filter: brightness(1.12); }
+
+.setor-cab-esq {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+.setor-chevron {
+  font-size: 10px;
+  color: var(--cinza3);
+  transition: transform 0.22s;
+  flex-shrink: 0;
+}
+.setor-bloco.expandido .setor-chevron { transform: rotate(90deg); }
+
+.setor-label {
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+  background: var(--setor-cor, var(--roxo));
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.setor-andar-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cinza3);
+  background: var(--preto5);
+  border: 1px solid var(--cinza4);
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+}
+
+.setor-cab-dir {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.setor-stat {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cinza2);
+  white-space: nowrap;
+}
+.setor-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--roxo-claro);
+  background: #2d1060;
+  padding: 2px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  border: 1px solid #4a2090;
+}
+.setor-bloco .setor-badge { color: var(--setor-cor, var(--roxo-claro)); border-color: var(--setor-cor, #4a2090); background: transparent; }
+.setor-bloco .setor-ocp-fill,
+.setor-bloco .setor-ocp-fill.quase,
+.setor-bloco .setor-ocp-fill.cheio { background: var(--setor-cor, var(--roxo)); }
+
+/* ===== AUDITORIA ===== */
+#auditPanel {
+  display: none;
+  position: fixed;
+  inset: 58px 0 0;
+  z-index: 70;
+  background: var(--preto);
+  color: var(--branco);
+  overflow: auto;
+}
+#auditPanel.visivel { display: block; }
+.audit-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 22px 0 40px; }
+.audit-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+.audit-title strong { display: block; font-size: 22px; }
+.audit-title span { color: var(--cinza2); font-size: 13px; }
+.audit-search { display: grid; grid-template-columns: minmax(220px, 520px) auto; gap: 8px; margin-bottom: 18px; }
+.audit-search input { height: 42px; padding: 0 13px; background: var(--preto3); color: var(--branco); border: 1px solid var(--cinza4); border-radius: 6px; font-size: 16px; }
+.audit-search button { height: 42px; padding: 0 18px; background: var(--roxo); color: #fff; }
+.audit-status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+.audit-status { background: var(--preto3); border: 1px solid var(--cinza4); border-radius: 8px; padding: 14px; min-height: 92px; }
+.audit-status small { display: block; color: var(--cinza2); margin-bottom: 7px; font-weight: 700; text-transform: uppercase; }
+.audit-status strong { display: block; font-size: 16px; word-break: break-word; }
+.audit-status p { color: var(--cinza2); font-size: 12px; margin-top: 6px; line-height: 1.45; }
+.audit-diagnosis { padding: 13px 15px; border-left: 4px solid #f59e0b; background: var(--preto3); margin-bottom: 16px; line-height: 1.5; }
+.audit-section-title { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 8px; }
+.audit-section-title span { color: var(--cinza2); font-size: 12px; }
+.audit-timeline { border-top: 1px solid var(--cinza4); }
+.audit-event { display: grid; grid-template-columns: 150px 150px 1fr 130px; gap: 12px; padding: 11px 8px; border-bottom: 1px solid var(--cinza4); align-items: center; font-size: 13px; }
+.audit-event .action { font-weight: 800; color: var(--roxo-claro); }
+.audit-event .when, .audit-event .who { color: var(--cinza2); }
+.audit-empty { padding: 30px 12px; text-align: center; color: var(--cinza2); border: 1px dashed var(--cinza4); }
+
+/* ===== MAPA DE CALOR (JANELA SEPARADA) ===== */
+#heatmapView { display: none; min-height: 100vh; background: var(--preto); color: var(--branco); }
+body.heatmap-mode { overflow: auto; }
+body.heatmap-mode #header,
+body.heatmap-mode #main,
+body.heatmap-mode #auditPanel,
+body.heatmap-mode #avisoErp,
+body.heatmap-mode #modalOverlay { display: none !important; }
+body.heatmap-mode #heatmapView { display: block; }
+.heatmap-head { position: sticky; top: 0; z-index: 5; min-height: 64px; padding: 12px 24px; background: var(--preto2); border-bottom: 2px solid var(--roxo); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.heatmap-head h1 { font-size: 20px; font-weight: 900; }
+.heatmap-head p { color: var(--cinza2); font-size: 12px; margin-top: 3px; }
+.heatmap-actions { display: flex; align-items: center; gap: 8px; }
+.heatmap-shell { width: min(1440px, calc(100% - 32px)); margin: 0 auto; padding: 20px 0 42px; }
+.heatmap-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--cinza4); border-radius: 8px; overflow: hidden; margin-bottom: 18px; }
+.heatmap-stat { padding: 13px 15px; background: var(--preto3); border-right: 1px solid var(--cinza4); min-width: 0; }
+.heatmap-stat:last-child { border-right: 0; }
+.heatmap-stat span { display: block; color: var(--cinza2); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.heatmap-stat strong { display: block; font-size: 19px; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heatmap-rankings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 22px; }
+.heatmap-ranking { min-width: 0; }
+.heatmap-ranking h2, .heatmap-map-head h2 { font-size: 14px; text-transform: uppercase; margin-bottom: 8px; }
+.heatmap-rank-list { border-top: 1px solid var(--cinza4); }
+.heatmap-rank-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 5px; border-bottom: 1px solid var(--cinza4); font-size: 12px; }
+.heatmap-rank-row .rank { color: var(--cinza3); font-weight: 800; }
+.heatmap-rank-row .name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heatmap-rank-row .value { color: var(--cinza2); font-variant-numeric: tabular-nums; }
+.heatmap-map-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.heatmap-map-head select { width: min(240px, 46vw); background: var(--preto3); color: var(--branco); border: 1px solid var(--cinza4); border-radius: 6px; padding: 8px 10px; }
+.heatmap-sector { margin-bottom: 20px; }
+.heatmap-sector-title { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-left: 5px solid var(--setor-cor); border-bottom: 1px solid var(--cinza4); }
+.heatmap-sector-title strong { color: var(--setor-cor); }
+.heatmap-sector-title span { color: var(--cinza2); font-size: 12px; }
+.heatmap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(102px, 1fr)); gap: 6px; padding-top: 8px; }
+.heatmap-cell { min-height: 66px; border: 2px solid var(--heat-border); background: var(--heat-bg); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; }
+.heatmap-cell strong { color: var(--branco); font-size: 12px; }
+.heatmap-cell span { color: var(--cinza2); font-size: 11px; }
+.heatmap-cell b { color: var(--branco); font-size: 17px; }
+.heatmap-cell[role="button"] { cursor: pointer; text-align: left; }
+.heatmap-cell[role="button"]:hover, .heatmap-cell[aria-expanded="true"] { outline: 2px solid var(--roxo-claro); outline-offset: 1px; }
+.heatmap-cell:focus-visible { outline: 3px solid var(--roxo-claro); }
+.box-insights { margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--cinza4); color: var(--branco); }
+.box-insights-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; min-width: 0; }
+.box-insights-head h3 { font-size: 12px; white-space: nowrap; }
+.box-insights-head .insight-refresh { margin-left: auto; flex-shrink: 0; padding: 4px 8px; font-size: 10px; letter-spacing: 0; }
+.box-insights-meta { color: var(--cinza2); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.box-insights-status { color: var(--cinza2); font-size: 11px; line-height: 1.4; margin: 4px 0; }
+.box-insights-status:empty, .box-insights-error:empty { display: none; }
+.box-insights-error { color: var(--erro); font-size: 12px; padding: 6px 0; overflow-wrap: anywhere; }
+.box-insights-scroll { max-height: 520px; overflow: auto; }
+.box-insights-item { border-bottom: 1px solid var(--cinza4); }
+.box-insights-item summary { display: grid; grid-template-columns: 8px max-content minmax(50px,1fr) auto auto; align-items: center; gap: 8px; padding: 8px 2px; cursor: pointer; list-style: none; font-size: 12px; }
+.box-insights-item summary::-webkit-details-marker { display: none; }
+.box-insights-item summary::before { content: '\203A'; color: var(--cinza2); font-size: 15px; line-height: 1; }
+.box-insights-item[open] summary::before { transform: rotate(90deg); }
+.box-insights-item summary:hover { background: var(--preto4); }
+.box-insights-sku { font-weight: 800; white-space: nowrap; }
+.box-insights-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.box-insights-metric { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 11px; }
+.box-insights-metric span { color: var(--cinza2); font-size: 9px; margin-right: 3px; }
+.box-insights-history { padding: 8px 0; color: var(--cinza2); font-size: 11px; line-height: 1.6; }
+.box-insights-item .zero-stock { color: var(--erro); }
+.box-insights-empty { color: var(--cinza2); font-size: 13px; padding: 16px 0; }
+@media (max-width: 600px) {
+  .heatmap-head { flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .heatmap-head > div:first-child { width: 100%; }
+  .heatmap-head h1 { font-size: 18px; }
+  .heatmap-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+  .box-insights-item summary { gap: 5px; font-size: 11px; }
+  .box-insights-head h3 { font-size: 11px; }
+}
+.heatmap-empty { padding: 28px; color: var(--cinza2); text-align: center; border: 1px dashed var(--cinza4); }
+@media (max-width: 900px) {
+  .heatmap-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .heatmap-stat { border-bottom: 1px solid var(--cinza4); }
+  .heatmap-rankings { grid-template-columns: 1fr; }
+}
+html[data-theme="light"] #modalOverlay { background: rgba(30,40,55,.45); }
+html[data-theme="light"] .msg.erro, html[data-theme="light"] .btn-danger, html[data-theme="light"] .btn-modal-delete { background: #fff0f0; }
+html[data-theme="light"] .msg.ok { background: #edf8ef; }
+html[data-theme="light"] #bannerNaoEncontrado { background: #fff7e8; }
+html[data-theme="light"] .helper-strip,
+html[data-theme="light"] .position-panel,
+html[data-theme="light"] .header-menu-pop { background: #ffffff; }
+html[data-theme="light"] .card-principal { background: #ffffff; background-image: none; }
+html[data-theme="light"] .prat-label-col { background: var(--setor-fundo, #f1f3f8); border-color: var(--setor-cor, #667085); }
+html[data-theme="light"] .caixa-cel.vazia { background: #f7f9fc; border-color: #d7dee8; }
+html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
+@media (max-width: 800px) {
+  #header { padding: 0 8px; gap: 6px; }
+  #header h1 { font-size: 14px; letter-spacing: 0; white-space: nowrap; }
+  #header-sub, #statusIndicator, #statusErpIndicator, #avisoKeepalive { display: none !important; }
+  #header-dir { gap: 4px; }
+  #header-dir > .btn-header { padding: 7px 8px; font-size: 10px; }
+  .theme-toggle { width: 32px; }
+  .audit-status-grid { grid-template-columns: 1fr; }
+  .audit-event { grid-template-columns: 110px 1fr; }
+  .audit-event .detail { grid-column: 1 / -1; }
+  html, body { overflow: auto; }
+  #main { display: block; height: auto; min-height: calc(100vh - 58px); }
+  #colunaEsq { overflow: visible; border-right: 0; border-bottom: 1px solid var(--cinza4); }
+  #colunaDir { overflow: visible; min-height: 680px; }
+  #painelSetores { min-height: 520px; max-height: 70vh; }
+}
+
+/* ===== CORPO DO SETOR (prateleiras) ===== */
+.setor-corpo {
+  display: none;
+  padding: 0 8px 8px;
+}
+.setor-bloco.expandido .setor-corpo { display: block; }
+
+/* ===== PRATELEIRA ROW ===== */
+.prat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 4px;
+  border-radius: 7px;
+  overflow: visible;
+  background: var(--preto4);
+  border: 1px solid #2a2a2a;
+}
+.prat-label-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  min-height: 48px;
+  background: var(--setor-fundo, #1a1a2e);
+  border-right: 2px solid var(--setor-cor, #6b4fa0);
+  border-radius: 6px 0 0 6px;
+  padding: 5px 3px;
+}
+.prat-label-num {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--setor-cor, var(--roxo-claro));
+  letter-spacing: 1px;
+}
+.prat-label-sub {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--cinza3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.prat-label-cnt {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--setor-cor, #6b4fa0);
+  margin-top: 2px;
+}
+
+.prat-caixas-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 5px 7px;
+  flex: 1;
+  align-items: flex-start;
+}
+
+/* ===== CAIXA CÉLULA ===== */
+/* Tamanho base controlado por CSS var para zoom */
+:root {
+  --cx-size: 50px;
+}
+
+.caixa-cel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: var(--cx-size);
+  min-height: var(--cx-size);
+  background: var(--preto5);
+  border: 1.5px solid var(--cinza4);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  user-select: none;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.caixa-cel:hover {
+  border-color: var(--roxo-claro);
+  transform: scale(1.05);
+  z-index: 2;
+}
+.caixa-cel.expandida {
+  border-color: var(--roxo);
+  background: #1a0e30;
+}
+.caixa-cel.vazia {
+  border-color: #1e1e1e;
+  background: #0a0a0a;
+}
+.caixa-cel.vazia:hover { border-color: #333; }
+
+/* Topo da caixa: nome */
+.caixa-cel-topo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 2px 1px;
+  flex-shrink: 0;
+}
+.caixa-cel-nome {
+  font-size: clamp(7px, calc(var(--cx-size) / 6.5), 10px);
+  font-weight: 900;
+  color: var(--branco);
+  letter-spacing: 0;
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.caixa-cel.vazia .caixa-cel-nome { color: var(--cinza4); }
+
+/* Área dos lados (A, B, C...) — pilha vertical */
+.caixa-lados {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0;
+  padding-bottom: 1px;
+}
+
+/* Cada faixa de lado */
+.lado-faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1px 4px;
+  flex: 1;
+  min-height: 14px;
+  position: relative;
+}
+/* Divisor entre lados */
+.lado-faixa + .lado-faixa {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.lado-letra {
+  font-size: 8px;
+  font-weight: 900;
+  color: var(--cinza3);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Indicador de nível de ocupação — coluna colorida */
+.lado-nivel-bar {
+  width: 5px;
+  border-radius: 2px;
+  align-self: stretch;
+  margin: 1px 0;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+/* 4 níveis */
+.nivel-vazio    { background: #1e1e1e; }
+.nivel-pouca    { background: #22c55e; }   /* verde */
+.nivel-media    { background: #f59e0b; }   /* âmbar */
+.nivel-quase    { background: var(--erro); } /* vermelho */
+
+/* Label do nível (texto mini) */
+.lado-nivel-txt {
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--cinza3);
+  line-height: 1;
+  letter-spacing: 0.3px;
+  text-align: right;
+  flex: 1;
+  padding-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Caixa sem lado B+ — modo simples (só A) */
+.caixa-cel.simples .caixa-lados {
+  align-items: center;
+  justify-content: center;
+}
+.caixa-cel.simples .lado-faixa {
+  justify-content: center;
+  gap: 3px;
+}
+.caixa-cel.simples .lado-letra { display: none; }
+.caixa-cel.simples .lado-nivel-txt { display: none; }
+.caixa-cel.simples .lado-nivel-bar {
+  width: 100%;
+  height: 4px;
+  align-self: auto;
+  margin: 0;
+  border-radius: 0 0 0 0;
+}
+/* Barra de nivel no fundo para modo simples */
+.caixa-cel.simples {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.caixa-cel.simples .caixa-lados {
+  width: 100%;
+  padding: 0;
+  gap: 2px;
+  justify-content: center;
+}
+
+/* Contador de SKUs para caixa simples */
+.caixa-cel-cnt {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--roxo-claro);
+  line-height: 1;
+  text-align: center;
+}
+.caixa-cel.vazia .caixa-cel-cnt { color: var(--cinza4); }
+
+/* ===== DRAWER DA CAIXA (expande abaixo da prat-row) ===== */
+.prat-drawer-wrap {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.28s ease;
+}
+.prat-drawer-wrap.aberto {
+  max-height: 700px;
+}
+.caixa-drawer {
+  margin: 3px 6px 5px;
+  background: var(--roxo-fundo);
+  border: 1px solid var(--roxo);
+  border-radius: 8px;
+  padding: 11px 13px;
+}
+.drawer-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.drawer-titulo {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--branco);
+  letter-spacing: 1px;
+}
+.drawer-badges {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.drawer-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--roxo-claro);
+  background: #2d1060;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid #4a2090;
+}
+/* Por lado no drawer */
+.drawer-lado-secao {
+  margin-bottom: 8px;
+}
+.drawer-lado-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0 5px;
+  border-bottom: 1px solid rgba(124,58,237,0.25);
+  margin-bottom: 4px;
+}
+.drawer-lado-letra {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--roxo-claro);
+  letter-spacing: 1px;
+}
+.drawer-lado-nivel {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.drawer-lado-nivel.nivel-vazio { background: #1e1e1e; color: var(--cinza3); }
+.drawer-lado-nivel.nivel-pouca { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+.drawer-lado-nivel.nivel-media { background: #1c1400; color: #fbbf24; border: 1px solid #854d0e; }
+.drawer-lado-nivel.nivel-quase { background: #1a0000; color: #f87171; border: 1px solid #7f1d1d; }
+
+.drawer-skus {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.drawer-sku-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 15px max-content minmax(60px,1fr) auto auto minmax(0,.65fr);
+  align-items: center;
+  gap: 7px;
+  padding: 5px 4px;
+  border-bottom: 1px solid rgba(124,58,237,0.12);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+  touch-action: none;
+}
+.drawer-sku-row:last-child { border-bottom: none; }
+.drawer-sku-row:hover { background: rgba(124,58,237,0.12); }
+.drawer-sku-row.selecionado {
+  background: rgba(124,58,237,0.22);
+  outline: 1px solid rgba(167,139,250,0.45);
+}
+.drawer-sku-check {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: var(--roxo);
+  cursor: pointer;
+}
+.drawer-sku-row.drag-armado {
+  background: rgba(167,139,250,0.2);
+  outline: 1px solid var(--roxo-claro);
+}
+.drawer-sku-cod {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--branco);
+  letter-spacing: 0.5px;
+  margin-right: auto;
+}
+.drawer-sku-meta {
+  font-size: 10px;
+  color: var(--cinza3);
+  text-align: right;
+  line-height: 1.4;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawer-sku-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.drawer-sku-stock, .drawer-sku-sales { white-space: nowrap; font-size: 11px; font-variant-numeric: tabular-nums; }
+.drawer-sku-stock small, .drawer-sku-sales small { color: var(--cinza2); font-size: 9px; }
+.drawer-sku-stock.zero-stock { color: var(--erro); }
+.drawer-insights-toolbar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-left: auto; min-width: 0; max-width: 100%; }
+.drawer-insights-toolbar .box-insights-meta { max-width: 240px; }
+.drawer-insights-toolbar .box-insights-status { margin: 0; }
+.drawer-insights-toolbar .box-insights-error { padding: 0; font-size: 11px; }
+.drawer-insights-toolbar .insight-refresh { flex-shrink: 0; padding: 4px 8px; font-size: 10px; letter-spacing: 0; }
+@media (max-width: 700px) {
+  .drawer-sku-row { grid-template-columns: 15px max-content minmax(45px,1fr) auto auto; gap: 5px; }
+  .drawer-sku-meta { grid-column: 2 / -1; text-align: left; }
+}
+.drawer-vazia {
+  font-size: 12px;
+  color: var(--cinza3);
+  font-style: italic;
+  padding: 3px 0;
+}
+
+/* ===== ARRASTAR CAIXAS / SKUS ===== */
+.caixa-cel {
+  touch-action: none;
+}
+.caixa-cel.drag-armado {
+  border-color: var(--roxo-claro);
+  box-shadow: 0 0 0 2px rgba(167,139,250,0.18), 0 0 18px rgba(124,58,237,0.4);
+}
+.caixa-cel.drag-armado::after,
+.drawer-sku-row.drag-armado::after {
+  content: "segure...";
+  position: absolute;
+  inset: auto 3px 3px 3px;
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: rgba(124,58,237,0.95);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.caixa-cel.drag-origem {
+  opacity: 0.55;
+}
+.caixa-cel.drop-alvo {
+  border-color: #22c55e !important;
+  background: #082414 !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.35), 0 0 18px rgba(34,197,94,0.25);
+}
+.drag-fantasma {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 92px;
+  max-width: 180px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--roxo-claro);
+  background: rgba(20,20,20,0.94);
+  color: var(--branco);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  transform: translate(12px, 12px);
+}
+.drag-fantasma::before {
+  content: "➜";
+  color: #22c55e;
+  font-size: 20px;
+  line-height: 1;
+}
+.drag-fantasma.sku::before {
+  content: "SKU";
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #052e16;
+  color: #86efac;
+}
+.modal-drag-opcoes {
+  display: grid;
+  gap: 8px;
+}
+.modal-drag-opcoes button {
+  width: 100%;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--cinza4);
+  background: var(--preto4);
+  color: var(--branco);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+.modal-drag-opcoes button:hover {
+  border-color: var(--roxo-claro);
+  background: #211133;
+}
+.modal-drag-opcoes small {
+  display: block;
+  margin-top: 4px;
+  color: var(--cinza2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ===== EDITOR DE OCUPAÇÃO INLINE NO DRAWER ===== */
+.drawer-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+.drawer-edit-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--roxo-claro);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.drawer-edit-lado-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.drawer-edit-lado-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cinza2);
+  flex-shrink: 0;
+  min-width: 46px;
+}
+.drawer-edit-select {
+  flex: 1;
+  min-width: 90px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--preto);
+  border: 1.5px solid var(--cinza4);
+  border-radius: 6px;
+  color: var(--branco);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.drawer-edit-select:focus { outline: none; border-color: var(--roxo); }
+.drawer-edit-select.opt-sel-pouca { color: #4ade80 !important; border-color: #166534 !important; }
+.drawer-edit-select.opt-sel-media  { color: #fbbf24 !important; border-color: #854d0e !important; }
+.drawer-edit-select.opt-sel-quase  { color: #f87171 !important; border-color: #7f1d1d !important; }
+.drawer-edit-select.opt-sel-vazio  { color: var(--cinza3) !important; border-color: var(--cinza4) !important; }
+.drawer-edit-btn {
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--roxo);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.drawer-edit-btn:hover { opacity: 0.85; }
+.drawer-edit-btn:disabled { opacity: 0.4; cursor: default; }
+.drawer-edit-msg {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  display: none;
+  width: 100%;
+  margin-top: 4px;
+}
+.drawer-edit-msg.ok   { display: block; background: #052e16; color: #4ade80; border: 1px solid #166534; }
+.drawer-edit-msg.erro { display: block; background: #1a0000; color: #f87171; border: 1px solid #7f1d1d; }
+
+/* Badge hint clicável para edição */
+.drawer-edit-hint {
+  cursor: pointer;
+  color: var(--cinza3) !important;
+  border-color: var(--cinza4) !important;
+  font-size: 9px !important;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+.drawer-edit-hint:hover {
+  color: #a78bfa !important;
+  border-color: #a78bfa !important;
+  background: rgba(124,58,237,0.15);
+}
+.drawer-edit-hint.ativo {
+  color: #a78bfa !important;
+  border-color: #a78bfa !important;
+  background: rgba(124,58,237,0.18);
+}
+
+/* Barra de ocupação do setor */
+.setor-ocp-bar {
+  height: 3px;
+  background: #1e1e1e;
+  border-radius: 0 0 9px 9px;
+  overflow: hidden;
+}
+.setor-ocp-fill {
+  height: 100%;
+  background: var(--roxo);
+  transition: width 0.4s;
+}
+.setor-ocp-fill.quase { background: #f59e0b; }
+.setor-ocp-fill.cheio { background: var(--erro); }
+
+/* Estado vazio */
+.painel-vazio {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--cinza3);
+  font-size: 14px;
+}
+.painel-vazio-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+
+/* Legenda dos 4 níveis */
+.painel-legenda {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 9px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--cinza3);
+  font-weight: 600;
+}
+.leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.leg-sep {
+  width: 1px; height: 12px;
+  background: var(--cinza4);
+}
+
+/* Filtro match */
+.caixa-cel.filtro-match {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+}
+
+/* Zoom hint pulse quando scroll */
+@keyframes zoomPulse {
+  0% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+.zoom-pulse { animation: zoomPulse 0.3s ease; }
+
+/* ===== SELECT OCUPAÇÃO — texto colorido sem emoji ===== */
+.select-nivel { color: var(--branco); }
+.select-nivel option { background: var(--preto3); }
+
+/* Cor dinâmica do select via JS */
+.select-nivel.opt-sel-pouca { color: #4ade80 !important; border-color: #166534 !important; }
+.select-nivel.opt-sel-media  { color: #fbbf24 !important; border-color: #854d0e !important; }
+.select-nivel.opt-sel-quase  { color: #f87171 !important; border-color: #7f1d1d !important; }
+.select-nivel.opt-sel-vazio  { color: var(--cinza3) !important; }
+
+/* ===== LEGENDA INTERATIVA ===== */
+.leg-filtro {
+  cursor: pointer;
+  padding: 3px 8px 3px 5px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  user-select: none;
+}
+.leg-filtro:hover {
+  background: rgba(124,58,237,0.10);
+  border-color: var(--cinza4);
+}
+.leg-filtro.ativo {
+  border-color: var(--roxo-claro);
+  background: rgba(124,58,237,0.18);
+}
+.leg-match-sku.ativo {
+  border-color: #4ade80;
+  background: rgba(34,197,94,0.12);
+}
+
+/* A coordenada fica neutra; a borda comunica a ocupacao. */
+.caixa-cel-nome.cor-pouca,
+.caixa-cel-nome.cor-media,
+.caixa-cel-nome.cor-quase,
+.caixa-cel-nome.cor-vazio,
+.caixa-cel.vazia .caixa-cel-nome { color: var(--branco) !important; }
+.caixa-cel.ocup-vazio  { border-color: var(--cinza4); }
+.caixa-cel.ocup-pouca  { border-color: #22c55e; }
+.caixa-cel.ocup-media  { border-color: #f59e0b; }
+.caixa-cel.ocup-quase  { border-color: var(--erro); }
+
+/* ===== FILTRO NIVEL — DIM/BLUR das caixas não selecionadas ===== */
+.caixa-cel.nivel-dim {
+  opacity: 0.18;
+  filter: blur(1.5px) brightness(0.4) saturate(0.2);
+  box-shadow: inset 0 0 0 1px rgba(100,60,200,0.25);
+  pointer-events: none;
+  transition: opacity 0.22s, filter 0.22s;
+}
+.caixa-cel.nivel-highlight {
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+}
+
+/* ===== MATCH SKU MODO ATIVO — dim roxo para não-match ===== */
+.painel-match-sku-ativo .caixa-cel:not(.filtro-match) {
+  opacity: 0.15;
+  filter: blur(1px) saturate(0) hue-rotate(260deg) brightness(0.5);
+  pointer-events: none;
+  transition: opacity 0.22s, filter 0.22s;
+}
+.painel-match-sku-ativo .caixa-cel.filtro-match {
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+}
+
+/* ===== FIX SCROLL PAINEL DIREITO ===== */
+#colunaDir {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  overflow: hidden;
+  background: var(--preto2);
+  min-height: 0;
+}
+#painelSetores {
+  flex: 1;
+  overflow-y: scroll;
+  overflow-x: auto;
+  padding-right: 8px;
+  padding-bottom: 12px;
+  min-height: 0;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--roxo) var(--preto3);
+}
+#painelSetores::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+#painelSetores::-webkit-scrollbar-track {
+  background: var(--preto3);
+  border-radius: 10px;
+}
+#painelSetores::-webkit-scrollbar-thumb {
+  background: #4a2090;
+  border-radius: 10px;
+  border: 2px solid var(--preto3);
+}
+#painelSetores::-webkit-scrollbar-thumb:hover {
+  background: var(--roxo);
+}
+#painelZoomWrap {
+  transform-origin: top left;
+  transition: transform 0.15s ease;
+  width: 100%;
+  min-height: min-content;
+}
+@media (max-width: 800px) {
+  #colunaDir { overflow: visible; min-height: 680px; }
+  #painelSetores { min-height: 520px; max-height: 70vh; }
+}
+@media (max-width: 500px) {
+  #header-esq { display: none; }
+  #header-dir { width: 100%; justify-content: flex-end; }
+  #header-dir > .btn-header, #headerMenu summary { padding: 7px 9px; }
+  .module-link { font-size: 0 !important; }
+  .module-link::after { content: "NFe"; font-size: 10px; }
+}
+#invoiceImportDialog { width: 440px; max-width: calc(100vw - 32px); margin: auto; padding: 22px; border: 1px solid var(--cinza4); border-radius: 8px; background: var(--preto2); color: var(--branco); font-family: inherit; }
+#invoiceImportDialog::backdrop { background: #0008; }
+.invoice-import-head, .invoice-import-actions { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.invoice-import-head h2 { font-size: 18px; }
+#invoiceImportProgress { width: 100%; height: 12px; margin: 20px 0 8px; accent-color: var(--verde, #299964); }
+#invoiceImportCount { font-size: 16px; font-variant-numeric: tabular-nums; }
+#invoiceImportStatus { color: var(--cinza2); font-size: 13px; margin: 12px 0 20px; overflow-wrap: anywhere; }
+.invoice-import-actions { justify-content: flex-end; }
+#invoiceImportDialog button[hidden] { display: none; }
+#btnImportarNotas, #btnImportarNotasHeatmap { display: none !important; }
+.header-menu-pop a.btn-header { text-transform: uppercase; text-decoration: none; }
+.heatmap-mode-switch { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.heatmap-mode-switch select { background:var(--preto3); color:var(--branco); border:1px solid var(--cinza4); border-radius:6px; padding:8px; font:inherit; }
+#salesMapStatus { color:var(--cinza2); font-size:12px; overflow-wrap:anywhere; }
+</style>
+<link rel="stylesheet" href="/ui/v7.css">
+<script src="/ui/vendor/lucide.js" defer></script>
+<script src="/ui/v7.js" defer></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-esq">
+    <h1><span class="hl-wordmark">HL</span> Coordenadas</h1>
+    <span id="header-sub">Localiza&#231;&#227;o de estoque</span>
+  </div>
+  <div id="header-dir">
+    <a class="btn-header module-link" href="http://127.0.0.1:8770/" target="_blank" rel="noopener">Conferencia NFe</a>
+    <button class="btn-header" id="btnAuditoria">Auditoria</button>
+    <button class="btn-header theme-toggle" id="btnTema" title="Alternar tema" aria-label="Alternar tema">&#9728;</button>
+    <div id="statusIndicator">
+      <div class="dot" id="dotStatus"></div>
+      <span id="textoStatus">Conectando...</span>
+    </div>
+    <div id="statusErpIndicator" title="Servidor local que envia localizacoes ao Tiny ERP">
+      <div class="dot erp-check" id="dotErp"></div>
+      <span id="textoErpStatus">Tiny: verificando...</span>
+    </div>
+    <div id="avisoKeepalive" title="Aviso de pausa do Supabase"></div>
+    <details id="headerMenu">
+      <summary>Mais</summary>
+      <div class="header-menu-pop">
+        <a class="btn-header mobile-module" href="http://127.0.0.1:8770/" target="_blank" rel="noopener">Conferencia NFe</a>
+        <button class="btn-header mobile-module" id="btnAuditoriaMobile">Auditoria</button>
+        <a class="btn-header" id="btnHeatmap" href="/?view=heatmap" target="_blank" rel="noopener">MAPA DE CALOR</a>
+        <a class="btn-header" href="/?view=sales" target="_blank" rel="noopener">MAPA DE VENDAS</a>
+        <button class="btn-header" id="btnHistorico">Historico rapido</button>
+        <button class="btn-header" id="btnSyncErp" title="Le as posicoes atuais do Supabase e atualiza somente o Tiny. Nao apaga nem substitui dados no Supabase.">Atualizar Tiny</button>
+        <button class="btn-header" id="btnLogTiny">Log Tiny</button>
+        <button class="btn-header" id="btnImportarNotas">Importar notas</button>
+        <button class="btn-header" id="btnResumoVendas">Atualizar vendas</button>
+        <button class="btn-header" id="btnAutorizarTiny">Autorizar Tiny</button>
+        <button class="btn-header" id="btnBackupHeader">Baixar Backup</button>
+        <button class="btn-header" id="btnEstrutura">Gerenciar Estrutura</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<dialog id="invoiceImportDialog" aria-labelledby="invoiceImportTitle">
+  <div class="invoice-import-head"><h2 id="invoiceImportTitle">Resumo de vendas</h2>
+    <button class="btn-header" id="btnFecharImportacao" aria-label="Fechar importacao" title="Fechar">&#215;</button></div>
+  <progress id="invoiceImportProgress" max="100" value="0" aria-label="Progresso da consulta de logs"></progress>
+  <div id="invoiceImportCount">0 SKUs</div>
+  <div id="invoiceImportStatus" role="status"></div>
+  <div class="invoice-import-actions">
+    <button class="btn-header" id="btnPausarImportacao" hidden>Pausar</button>
+    <button class="btn-header" id="btnIniciarImportacao">Consultar logs e publicar</button>
+  </div>
+</dialog>
+
+<!-- GUIA DE AUDITORIA -->
+<section id="auditPanel" aria-label="Auditoria de estoque">
+  <div class="audit-shell">
+    <div class="audit-head">
+      <div class="audit-title"><strong>Auditoria de estoque</strong><span>Rastreio entre Coordenadas, Tiny ERP e historico de movimentacoes</span></div>
+      <button class="btn-header" id="btnFecharAuditoria">Fechar</button>
+    </div>
+    <div class="audit-search">
+      <input id="auditSku" type="search" placeholder="Digite um SKU, por exemplo CSE10" autocomplete="off">
+      <button id="btnBuscarAuditoria">Investigar SKU</button>
+    </div>
+    <div id="auditSummary"></div>
+    <div class="audit-section-title"><strong id="auditTimelineTitle">Eventos recentes</strong><span id="auditCount"></span></div>
+    <div id="auditTimeline" class="audit-timeline"><div class="audit-empty">Carregando auditoria...</div></div>
+  </div>
+</section>
+
+<!-- MAPA DE CALOR EM JANELA SEPARADA -->
+<section id="heatmapView" aria-label="Mapa de calor do estoque">
+  <div class="heatmap-head">
+    <div><h1>Mapa de calor do estoque</h1><p>Distribuicao de SKUs por setor, prateleira e caixa</p></div>
+    <div class="heatmap-actions">
+      <button class="btn-header theme-toggle" id="btnTemaHeatmap" title="Alternar tema" aria-label="Alternar tema">&#9728;</button>
+      <button class="btn-header" id="btnAtualizarHeatmap">Atualizar</button>
+      <button class="btn-header" id="btnImportarNotasHeatmap">Importar notas</button>
+      <button class="btn-header" id="btnResumoVendasHeatmap">Atualizar vendas</button>
+      <button class="btn-header" id="btnFecharHeatmap">Fechar</button>
+    </div>
+  </div>
+  <div class="heatmap-shell">
+    <div class="heatmap-mode-switch"><select id="heatmapMetrica" aria-label="Tipo de mapa"><option value="ocupacao">Ocupacao por caixa</option><option value="vendas">Vendas por caixa</option></select><span id="salesMapStatus" role="status"></span></div>
+    <div id="heatmapStats" class="heatmap-stats"></div>
+    <div class="heatmap-rankings">
+      <div class="heatmap-ranking"><h2 id="heatmapSetoresTitulo">Setores com mais SKUs</h2><div id="heatmapSetores" class="heatmap-rank-list"></div></div>
+      <div class="heatmap-ranking"><h2 id="heatmapMaisTitulo">Caixas com mais SKUs</h2><div id="heatmapMais" class="heatmap-rank-list"></div></div>
+      <div class="heatmap-ranking"><h2 id="heatmapMenosTitulo">Caixas com menos SKUs</h2><div id="heatmapMenos" class="heatmap-rank-list"></div></div>
+    </div>
+    <div class="heatmap-map-head">
+      <h2>Mapa por caixa</h2>
+      <select id="heatmapFiltroSetor" aria-label="Filtrar setor"><option value="">Todos os setores</option></select>
+    </div>
+    <div id="heatmapMapa"><div class="heatmap-empty">Carregando dados...</div></div>
+  </div>
+</section>
+
+<!-- AVISO SERVIDOR ERP TINY -->
+<div id="avisoErp" class="verificando">Verificando servidor de sincronizacao com o Tiny ERP...</div>
+
+<!-- MODAL EDITAR / DELETAR SKU -->
+<div id="modalOverlay">
+  <div id="modalBox">
+    <h2 id="modalTitulo">Editar SKU</h2>
+    <p class="modal-aviso" id="modalAviso"></p>
+    <div id="modalConteudo"></div>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
+<!-- LAYOUT PRINCIPAL -->
+<div id="main">
+
+  <!-- COLUNA ESQUERDA -->
+  <div id="colunaEsq">
+
+
+    <!-- BUSCA -->
+    <div class="card card-principal compacto">
+      <div class="card-titulo">Buscar SKU</div>
+      <div class="busca-inline">
+        <div>
+          <label for="skuBusca">Codigo SKU</label>
+          <input type="text" id="skuBusca" placeholder="Escaneie ou digite" autocomplete="off" autofocus style="font-size:18px;">
+        </div>
+        <button class="btn-buscar" id="btnBuscar">Buscar</button>
+      </div>
+      <div class="msg" id="msgBusca"></div>
+    </div>
+
+    <!-- BUSCA POR POSICAO -->
+    <details class="position-panel" id="painelBuscaPosicao">
+      <summary>Buscar por Posicao</summary>
+      <div class="position-panel-body">
+      <div class="grid2">
+        <div>
+          <label for="bpSetor">Setor</label>
+          <select id="bpSetor"></select>
+        </div>
+        <div>
+          <label for="bpPrateleira">Prateleira</label>
+          <select id="bpPrateleira"></select>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:8px;">
+        <div>
+          <label for="bpCaixa">Caixa</label>
+          <select id="bpCaixa"></select>
+        </div>
+        <div>
+          <label for="bpLado">Lado</label>
+          <select id="bpLado"><option value="">Sem letra</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+        </div>
+      </div>
+      <button class="btn-buscar" id="btnBuscarPosicao" style="margin-top:10px;">Buscar posicao</button>
+      <div class="msg" id="msgBuscaPosicao"></div>
+      <div id="resultadoBuscaPosicao" style="margin-top:8px;font-size:14px;color:var(--cinza1);"></div>
+      </div>
+    </details>
+
+    <!-- RESULTADO -->
+    <div id="blocoResultado">
+      <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:var(--roxo-claro);text-transform:uppercase;margin-bottom:6px;">Posicao Encontrada</div>
+      <div class="posicao-grande" id="posicaoTexto"></div>
+      <div class="resultado-sub" id="atualizadoTexto"></div>
+    </div>
+
+    <!-- NAO ENCONTRADO -->
+    <div id="bannerNaoEncontrado">
+      <p>SKU nao encontrado no sistema.</p>
+      <button class="btn-novo" id="btnMostrarCadastro">Cadastrar este SKU</button>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="card" id="cardFormulario">
+      <div class="card-titulo" id="tituloFormulario">Nova Posicao</div>
+      <button class="btn-salvar" id="btnSalvar">Salvar Posicao</button>
+
+      <label>Operador</label>
+      <div class="operador-opcoes" id="operadorOpcoes">
+        <button type="button" class="operador-opcao" data-operador="ANDERSON">Anderson</button>
+        <button type="button" class="operador-opcao" data-operador="LUIZ">Luiz</button>
+        <button type="button" class="operador-opcao" id="btnOutroOperador">Adicionar outro</button>
+      </div>
+      <input type="hidden" id="operadorInput">
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label for="setorInput">Setor</label>
+          <select id="setorInput"></select>
+        </div>
+        <div>
+          <label for="prateleiraInput">Prateleira</label>
+          <select id="prateleiraInput"></select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label for="caixaInput">Caixa</label>
+          <select id="caixaInput"></select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label for="ladoInput">Lado</label>
+          <select id="ladoInput">
+            <option value="">Sem letra</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+        <div>
+          <label for="nivelInput">Ocupacao</label>
+          <select id="nivelInput" class="select-nivel">
+            <option value="pouca" class="opt-pouca">Pouca</option>
+            <option value="media" class="opt-media">Media</option>
+            <option value="quase" class="opt-quase">Quase cheia</option>
+            <option value="vazio" class="opt-vazio">Vazia</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-editar-sku" id="btnEditarSku" style="display:none;">Editar codigo SKU</button>
+      <button class="btn-danger" id="btnDeletar" style="display:none;">Deletar este SKU do sistema</button>
+      <div class="msg" id="msgSalvar"></div>
+    </div>
+
+  </div>
+
+  <!-- COLUNA DIREITA -->
+  <div id="colunaDir">
+    <div class="dir-titulo">
+      Visao Geral — Estoque
+      <span class="dir-titulo-stats" id="dirStats"></span>
+    </div>
+
+    <!-- Filtro + controles -->
+    <div id="painelFiltroBar">
+      <input type="text" id="painelFiltroSku" placeholder="Filtrar por SKU..." autocomplete="off">
+      <button id="btnExpandirTudo" onclick="toggleExpandirTudo()">Expandir tudo</button>
+      <div class="zoom-controls" title="Zoom do mapa">
+        <button class="zoom-btn" id="btnZoomMenos" type="button">-</button>
+        <span id="zoomHint">100%</span>
+        <button class="zoom-btn" id="btnZoomMais" type="button">+</button>
+      </div>
+    </div>
+
+    <!-- Legenda 4 níveis -->
+    <div class="painel-legenda">
+      <div class="leg-item leg-filtro" data-nivel="vazio" onclick="toggleFiltroNivel('vazio')" title="Clique para filtrar caixas vazias">
+        <div class="leg-dot" style="background:#1e1e1e;border:1px solid #333;"></div> Vazia
+      </div>
+      <div class="leg-item leg-filtro" data-nivel="pouca" onclick="toggleFiltroNivel('pouca')" title="Clique para filtrar caixas com pouca ocupação">
+        <div class="leg-dot" style="background:#22c55e;"></div> Pouca
+      </div>
+      <div class="leg-item leg-filtro" data-nivel="media" onclick="toggleFiltroNivel('media')" title="Clique para filtrar caixas com ocupação média">
+        <div class="leg-dot" style="background:#f59e0b;"></div> Media
+      </div>
+      <div class="leg-item leg-filtro" data-nivel="quase" onclick="toggleFiltroNivel('quase')" title="Clique para filtrar caixas quase cheias">
+        <div class="leg-dot" style="background:var(--erro);"></div> Quase cheia
+      </div>
+      <div class="leg-sep"></div>
+      <div class="leg-item leg-filtro leg-match-sku" id="legMatchSku" onclick="toggleFiltroMatchSku()" title="Clique para realçar caixas com SKU buscado">
+        <div class="leg-dot" style="background:#22c55e;border:2px solid #4ade80;"></div> Match SKU
+      </div>
+    </div>
+
+    <div id="painelSetores">
+      <div id="painelZoomWrap">
+        <p style="color:var(--cinza2);font-size:15px;">Carregando...</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Se abriu o .html pelo Explorer (file://), redireciona para o servidor local
+(function redirecionarSeArquivoLocal() {
+  if (location.protocol !== "file:") return;
+  const destino = "http://127.0.0.1:8766/";
+  document.body.innerHTML =
+    '<div style="font-family:Segoe UI,sans-serif;padding:40px;max-width:520px;margin:80px auto;text-align:center;">' +
+    '<h1 style="color:#7c3aed;">HL Localizador</h1>' +
+    '<p>Redirecionando para o servidor local...</p>' +
+    '<p style="color:#888;font-size:14px;">Se nao abrir, execute <b>HL_Localizador.exe</b> e acesse:<br>' +
+    '<a href="' + destino + '">' + destino + '</a></p></div>';
+  location.replace(destino);
+})();
+
+// ==================== CONFIG ====================
+const SUPABASE_URL = window.HL_CONFIG?.supabase_url || '';
+const SUPABASE_KEY = window.HL_CONFIG?.supabase_key || '';
+const TABELA = "estoque";
+const TABELA_ESTRUTURA = "estrutura";
+const TABELA_HISTORICO = "historico_movimentos";
+const CAPACIDADE_CAIXA_PADRAO = 8;
+const SEIS_HORAS_MS = 6 * 60 * 60 * 1000;
+const ERP_CHECK_INTERVAL_MS = 15000;
+const ERP_HEALTH_TIMEOUT_MS = 6000;
+const ERP_HEALTH_TENTATIVAS = 4;
+const ERP_MAX_TENTATIVAS_FILA = 5;
+
+function erpUrl(caminho) {
+  const base = (
+    location.protocol === "http:" &&
+    (location.hostname === "127.0.0.1" || location.hostname === "localhost") &&
+    (location.port === "8766" || location.port === "8765")
+  ) ? "" : "http://127.0.0.1:8766";
+  return base ? (base + caminho) : caminho;
+}
+
+function urlsHealthErp() {
+  const lista = [];
+  if (location.protocol === "http:" && (location.port === "8766" || location.port === "8765")) {
+    lista.push("/health");
+  }
+  lista.push("http://127.0.0.1:8766/health", "http://localhost:8766/health");
+  return [...new Set(lista)];
+}
+
+const ANDAR_PADRAO = "";
+// ================================================
+
+const headers = {
+  "apikey": SUPABASE_KEY,
+  "Authorization": "Bearer " + SUPABASE_KEY,
+  "Content-Type": "application/json"
+};
+
+const el = id => document.getElementById(id);
+let skuAtual = null;
+let modoCadastro = false;
+let dadosCache = [];
+// estruturaCache: { "6": { "1": { caixas: 12, capacidade: 8 } } }
+let estruturaCache = {};
+let erpServidorOnline = false;
+let erpStatusBase = { online: false, verificando: true };
+const filaErp = [];
+let filaErpRodando = false;
+let filaErpAtual = null;
+let ultimoResultadoErp = null;
+let modalTinyOculto = false;
+let syncTinyJobAtual = "";
+
+// ===== UTILS =====
+function aplicarTema(tema) {
+  const valor = tema === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = valor;
+  localStorage.setItem("hl-coordenadas-theme", valor);
+  const botao = el("btnTema");
+  const botaoHeatmap = el("btnTemaHeatmap");
+  [botao, botaoHeatmap].filter(Boolean).forEach(btn => {
+    btn.innerHTML = valor === "light" ? "&#9790;" : "&#9728;";
+    btn.title = valor === "light" ? "Usar modo escuro" : "Usar modo claro";
+  });
+}
+function alternarTema() {
+  aplicarTema(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+  if (dadosCache.length) renderPainel(dadosCache, false);
+  if (heatmapDados.length) renderHeatmap(heatmapDados);
+}
+function estiloSetor(setor) {
+  const texto = String(setor || "0");
+  const numero = parseInt(texto.replace(/\D/g, ""), 10);
+  let base = Number.isFinite(numero) ? numero : [...texto].reduce((s, c) => s + c.charCodeAt(0), 0);
+  const hue = Math.round((base * 137.508 + 188) % 360);
+  return {
+    cor: `hsl(${hue} 72% 58%)`,
+    fundo: `hsl(${hue} 55% 50% / ${document.documentElement.dataset.theme === "light" ? ".10" : ".08"})`
+  };
+}
+function montarPosicao(linha) {
+  const setor = linha.setor || "";
+  const prat = linha.prateleira || "";
+  const caixa = linha.caixa || "";
+  const lado = (linha.lado || "").trim();
+  if (!setor && !prat && !caixa && !lado) return "";
+  return `${setor}-${prat}${caixa}${lado}`.replace(/-$/, "");
+}
+function obterQtdCaixas(mapaSetor, pratNum) {
+  const v = mapaSetor ? mapaSetor[pratNum] : null;
+  if (v == null) return 0;
+  return typeof v === "object" ? (v.caixas || 0) : v;
+}
+function obterCapacidadeCaixa(andar, setorNum, pratNum) {
+  const v = estruturaCache[setorNum]?.[pratNum];
+  if (v && typeof v === "object" && v.capacidade) return v.capacidade;
+  return CAPACIDADE_CAIXA_PADRAO;
+}
+function formatarDataHora(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("pt-BR", {
+    day:"2-digit", month:"2-digit", year:"numeric",
+    hour:"2-digit", minute:"2-digit"
+  });
+}
+function escapeHtmlAttr(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+function setMsg(id, texto, tipo) {
+  const e = el(id);
+  e.textContent = texto;
+  e.className = "msg " + tipo + " visivel";
+}
+function limparMsg(id) {
+  const e = el(id);
+  e.textContent = "";
+  e.className = "msg";
+}
+
+// ===== SYNC ERP (TINY) =====
+function atualizarAvisoErp(online, verificando) {
+  const av = el("avisoErp");
+  av.className = verificando ? "verificando" : (online ? "online" : "offline");
+  if (verificando) {
+    av.textContent = "Verificando servidor de sincronizacao com o Tiny ERP...";
+    return;
+  }
+  if (online) {
+    av.textContent = "SERVIDOR TINY ERP ONLINE — ao salvar, a localizacao sera enviada automaticamente ao Tiny.";
+  } else {
+    av.textContent = "SERVIDOR TINY ERP OFFLINE — 1) Execute HL_Localizador.exe e mantenha a janela preta aberta  2) Abra somente " + (location.protocol === "file:" ? "http://127.0.0.1:8766/" : "esta pagina pelo exe") + "  3) Rode TESTAR_SERVIDOR_ERP.bat se persistir.";
+  }
+}
+
+function setErpStatus(online, verificando) {
+  erpServidorOnline = !!online && !verificando;
+  erpStatusBase = { online: !!online, verificando: !!verificando };
+  const dot = el("dotErp");
+  const txt = el("textoErpStatus");
+  if (verificando) {
+    dot.className = "dot erp-check";
+    txt.textContent = "Tiny: verificando...";
+  } else if (online) {
+    dot.className = "dot erp-on";
+    txt.textContent = "Tiny ERP: online";
+  } else {
+    dot.className = "dot erp-off";
+    txt.textContent = "Tiny ERP: offline";
+  }
+  atualizarAvisoErp(online, verificando);
+  atualizarHeaderFilaErp();
+}
+
+function atualizarHeaderFilaErp() {
+  const dot = el("dotErp");
+  const txt = el("textoErpStatus");
+  if (!dot || !txt) return;
+
+  if (filaErpAtual) {
+    dot.className = "dot erp-check";
+    const resto = filaErp.length;
+    const nome = filaErpAtual.tipo === "lote" ? "lote ERP" : filaErpAtual.sku;
+    txt.textContent = resto > 0 ? `Tiny: sync ${nome} (${resto} na fila)` : `Tiny: sync ${nome}`;
+    return;
+  }
+
+  if (filaErp.length > 0) {
+    dot.className = "dot erp-check";
+    txt.textContent = `Tiny: fila ${filaErp.length} pendente(s)`;
+    return;
+  }
+
+  if (erpStatusBase.verificando) {
+    dot.className = "dot erp-check";
+    txt.textContent = "Tiny: verificando...";
+  } else if (erpStatusBase.online) {
+    dot.className = "dot erp-on";
+    txt.textContent = "Tiny ERP: online";
+  } else {
+    dot.className = "dot erp-off";
+    txt.textContent = "Tiny ERP: offline";
+  }
+}
+
+async function verificarServidorErp() {
+  setErpStatus(false, true);
+  for (let tentativa = 0; tentativa < ERP_HEALTH_TENTATIVAS; tentativa++) {
+    for (const url of urlsHealthErp()) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), ERP_HEALTH_TIMEOUT_MS);
+        const r = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+        clearTimeout(t);
+        if (r.ok) {
+          setErpStatus(true, false);
+          return true;
+        }
+      } catch (e) {}
+    }
+    if (tentativa < ERP_HEALTH_TENTATIVAS - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+  }
+  setErpStatus(false, false);
+  return false;
+}
+
+async function sincronizarSkuErp(sku, localizacao) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const r = await fetch(erpUrl("/sync"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sku, localizacao }),
+      signal: ctrl.signal
+    });
+    clearTimeout(t);
+    const data = await r.json().catch(() => ({}));
+    return { ok: !!data.ok, mensagem: data.mensagem || (data.erro || "Resposta invalida") };
+  } catch(e) {
+    clearTimeout(t);
+    return { ok: false, mensagem: "Servidor ERP offline. Execute HL_Localizador.exe" };
+  }
+}
+
+function precisaSincronizarErp(linha) {
+  if (!linha) return false;
+  if (linha.erro_erp) return true;
+  if (!linha.sincronizado_erp_em) return true;
+  if (!linha.atualizado_em) return false;
+  const sync = new Date(linha.sincronizado_erp_em).getTime();
+  const atualizado = new Date(linha.atualizado_em).getTime();
+  if (Number.isNaN(sync) || Number.isNaN(atualizado)) return true;
+  return atualizado > sync;
+}
+
+function montarPayloadSyncLote(linhas) {
+  const todas = (linhas || [])
+    .map(linha => ({
+      sku: String(linha.sku || "").trim().toUpperCase(),
+      localizacao: montarPosicao(linha),
+      atualizado_em: linha.atualizado_em || linha.criado_em || ""
+    }))
+    .filter(item => item.sku && item.localizacao)
+    .sort((a, b) => {
+      const da = new Date(a.atualizado_em || 0).getTime() || 0;
+      const db = new Date(b.atualizado_em || 0).getTime() || 0;
+      return db - da;
+    });
+  return {
+    itens: todas.map(({ sku, localizacao }) => ({ sku, localizacao })),
+    ignorados: 0,
+    totalComPosicao: todas.length
+  };
+}
+
+async function acompanharSyncLote(jobId, total, opcoes = {}) {
+  for (;;) {
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    const r = await fetch(erpUrl("/sync-progresso?id=" + encodeURIComponent(jobId)), { cache: "no-store" });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.erro || "Falha ao consultar progresso");
+
+    const atual = data.atual || 0;
+    const sincronizados = data.sincronizados || 0;
+    const pulados = data.pulados || 0;
+    const resultados = data.resultados || [];
+    const falhas = data.falhas || resultados.filter(r => !r.ok);
+    const faltam = data.faltam ?? Math.max(0, total - atual);
+    const msg = data.status === "carregando_tiny"
+      ? "Carregando Tiny..."
+      : `${atual}/${total} verificados`;
+    el("btnSyncErp").textContent = msg;
+    console.log("[Tiny V3]", {
+      status: data.status,
+      atual,
+      total,
+      enviados: sincronizados,
+      pulados,
+      erros: falhas.length,
+      ultimo: resultados[resultados.length - 1] || null
+    });
+
+    if (opcoes.modal) {
+      renderModalResultadoErp({
+        total,
+        atual,
+        enviados: sincronizados,
+        pulados,
+        resultados,
+        falhas,
+        faltam,
+        relatorio: data.relatorio || "",
+        finalizado: false,
+        status: data.status,
+        aba: ultimoResultadoErp?.aba || "erros"
+      });
+    }
+
+    if (data.status === "erro") {
+      syncTinyJobAtual = "";
+      throw new Error(data.mensagem || "Erro no processamento em lote");
+    }
+
+    if (["concluido", "concluido_com_erros", "pausado", "cancelado"].includes(data.status)) {
+      if (opcoes.alertar !== false) {
+        renderModalResultadoErp({
+          total,
+          atual,
+          enviados: sincronizados,
+          pulados,
+          resultados,
+          falhas,
+          faltam,
+          relatorio: data.relatorio || "",
+          finalizado: true,
+          status: data.status,
+          aba: falhas.length ? "erros" : "todos"
+        });
+      }
+      syncTinyJobAtual = "";
+      if (falhas.length) console.warn("SKUs nao sincronizados:", falhas);
+      return data;
+    }
+  }
+}
+
+function resultadoErpClasse(r) {
+  if (!r.ok) return "erros";
+  if (r.pulou) return "pulados";
+  return "enviados";
+}
+
+function renderListaResultadoErp(lista) {
+  if (!lista.length) {
+    return `<div style="padding:14px;color:var(--cinza2);font-size:13px;">Nenhum SKU nesta aba.</div>`;
+  }
+  return lista.map(r => {
+    const classe = resultadoErpClasse(r);
+    const cor = classe === "erros" ? "#ff8888" : (classe === "pulados" ? "#fbbf24" : "#86efac");
+    const rotulo = classe === "erros" ? "ERRO" : (classe === "pulados" ? "PULOU" : "OK");
+    return `
+      <div style="padding:9px 0;border-bottom:1px solid var(--preto4);font-size:13px;line-height:1.35;">
+        <strong style="color:${cor};">${escapeHtmlAttr(r.sku || "")}</strong>
+        <span style="color:var(--cinza2);"> ${escapeHtmlAttr(r.localizacao || "")}</span>
+        <span style="float:right;color:${cor};font-weight:800;">${rotulo}</span><br>
+        <span>${escapeHtmlAttr(r.mensagem || "sem mensagem")}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderModalResultadoErp({ total, atual, enviados, pulados, resultados, falhas, faltam, relatorio, finalizado, status, aba }) {
+  resultados = resultados || [];
+  falhas = falhas || resultados.filter(r => !r.ok);
+  const listaPulados = resultados.filter(r => r.ok && r.pulou);
+  const listaEnviados = resultados.filter(r => r.ok && !r.pulou);
+  const abaAtual = aba || "erros";
+  const listas = {
+    todos: resultados,
+    erros: falhas,
+    pulados: listaPulados,
+    enviados: listaEnviados
+  };
+  ultimoResultadoErp = {
+    total,
+    atual,
+    enviados,
+    pulados,
+    resultados,
+    falhas,
+    faltam,
+    relatorio,
+    finalizado,
+    status,
+    aba: abaAtual
+  };
+  if (!finalizado && modalTinyOculto) return;
+
+  el("modalBox").classList.add("wide");
+  const tituloStatus = status === "pausado" ? "Pausado" : (status === "cancelado" ? "Cancelado" : (finalizado ? "Resultado Tiny V3" : "Enviando Tiny V3"));
+  el("modalTitulo").textContent = tituloStatus;
+  const extraFaltam = (status === "pausado" || status === "cancelado") ? ` | ${faltam || 0} pendente(s)` : "";
+  el("modalAviso").textContent =
+    `${atual || 0}/${total || 0} verificado(s) | ${enviados || 0} enviado(s) | ${pulados || 0} pulado(s) | ${falhas.length} erro(s)${extraFaltam}.`;
+
+  const botaoAba = (id, texto, qtd) => `
+    <button class="btn-header" style="text-align:center;border-color:${abaAtual === id ? "var(--roxo-claro)" : "var(--cinza4)"};"
+      onclick="trocarAbaResultadoErp('${id}')">${texto} (${qtd})</button>
+  `;
+  el("modalConteudo").innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+      ${botaoAba("erros", "Erros", falhas.length)}
+      ${botaoAba("pulados", "Pulados", listaPulados.length)}
+      ${botaoAba("enviados", "Enviados", listaEnviados.length)}
+      ${botaoAba("todos", "Todos", resultados.length)}
+    </div>
+    <div style="max-height:420px;overflow-y:auto;border-top:1px solid var(--preto4);">
+      ${renderListaResultadoErp(listas[abaAtual] || [])}
+    </div>
+    ${relatorio ? `<p class="helper-text" style="margin-top:10px;">Relatorio salvo em ${escapeHtmlAttr(relatorio)}</p>` : ""}
+  `;
+
+  el("modalBtns").innerHTML = finalizado
+    ? `<button class="btn-modal-ok" onclick="fecharModal()">Fechar</button>`
+    : `
+      <button class="btn-modal-cancel" onclick="ocultarModalTiny()">Ocultar</button>
+      <button class="btn-modal-cancel" onclick="controlarSyncTiny('pausar')">Pausar</button>
+      <button class="btn-modal-delete" onclick="controlarSyncTiny('cancelar')">Cancelar</button>
+    `;
+  el("modalOverlay").classList.add("visivel");
+}
+
+function trocarAbaResultadoErp(aba) {
+  if (!ultimoResultadoErp) return;
+  modalTinyOculto = false;
+  renderModalResultadoErp({ ...ultimoResultadoErp, aba });
+}
+
+function ocultarModalTiny() {
+  modalTinyOculto = true;
+  fecharModal();
+}
+
+async function controlarSyncTiny(acao) {
+  if (!syncTinyJobAtual) return;
+  try {
+    const r = await fetch(erpUrl("/sync-controle"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: syncTinyJobAtual, acao })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.erro || "Falha ao controlar sincronizacao");
+    el("modalAviso").textContent = acao === "pausar"
+      ? "Pausa solicitada. O SKU atual termina e o lote para antes do proximo."
+      : "Cancelamento solicitado. O SKU atual termina e o lote para antes do proximo.";
+  } catch(e) {
+    alert("Falha ao " + acao + ": " + e.message);
+  }
+}
+
+async function iniciarSyncLoteComModal(itens) {
+  const inicio = await fetch(erpUrl("/sync-lote"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itens })
+  });
+  const data = await inicio.json().catch(() => ({}));
+  if (!inicio.ok || !data.job_id) throw new Error(data.erro || "Falha ao iniciar lote");
+  syncTinyJobAtual = data.job_id;
+  modalTinyOculto = false;
+  renderModalResultadoErp({
+    total: data.total || itens.length,
+    atual: 0,
+    enviados: 0,
+    pulados: 0,
+    resultados: [],
+    falhas: [],
+    faltam: data.total || itens.length,
+    relatorio: "",
+    finalizado: false,
+    status: "pendente",
+    aba: "erros"
+  });
+  return acompanharSyncLote(data.job_id, data.total || itens.length, { alertar: true, modal: true });
+}
+
+function abrirModalResultadoErp() {
+  modalTinyOculto = false;
+  if (!ultimoResultadoErp) {
+    el("modalBox").classList.add("wide");
+    el("modalTitulo").textContent = "Log Tiny V3";
+    el("modalAviso").textContent = "Nenhum envio carregado nesta tela ainda.";
+    el("modalConteudo").innerHTML = `
+      <div style="background:var(--preto4);border:1px solid var(--cinza4);border-radius:8px;padding:12px;font-size:14px;line-height:1.5;">
+        Rode uma sincronizacao para ver enviados, pulados e erros aqui.
+      </div>
+    `;
+    el("modalBtns").innerHTML = `<button class="btn-modal-ok" onclick="fecharModal()">Fechar</button>`;
+    el("modalOverlay").classList.add("visivel");
+    return;
+  }
+  renderModalResultadoErp(ultimoResultadoErp);
+}
+
+function autorizarTinyV3() {
+  window.open(erpUrl("/autorizar-tiny"), "_blank", "noopener");
+}
+
+function enfileirarSyncSku(sku, localizacao) {
+  sku = String(sku || "").trim().toUpperCase();
+  localizacao = String(localizacao || "").trim();
+  if (!sku || !localizacao) return;
+
+  const existente = filaErp.find(item => item.tipo === "sku" && item.sku === sku);
+  if (existente) {
+    existente.localizacao = localizacao;
+    existente.tentativas = 0;
+  } else {
+    filaErp.push({ tipo: "sku", sku, localizacao, tentativas: 0 });
+  }
+  atualizarHeaderFilaErp();
+  processarFilaErp();
+}
+
+function enfileirarSyncLote(itens) {
+  const limpos = (itens || [])
+    .map(i => ({ sku: String(i.sku || "").trim().toUpperCase(), localizacao: String(i.localizacao || "").trim() }))
+    .filter(i => i.sku && i.localizacao);
+  if (!limpos.length) return 0;
+  filaErp.push({ tipo: "lote", itens: limpos });
+  atualizarHeaderFilaErp();
+  processarFilaErp();
+  return limpos.length;
+}
+
+async function processarItemFilaErp(item) {
+  if (!await verificarServidorErp()) {
+    throw new Error("Servidor ERP offline");
+  }
+
+  if (item.tipo === "lote") {
+    const r = await fetch(erpUrl("/sync-lote"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itens: item.itens })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.job_id) throw new Error(data.erro || "Falha ao iniciar lote");
+    await acompanharSyncLote(data.job_id, data.total || item.itens.length, { alertar: false });
+    return;
+  }
+
+  const erp = await sincronizarSkuErp(item.sku, item.localizacao);
+  await apiAtualizarStatusErp(item.sku, erp.ok, erp.mensagem);
+  if (!erp.ok) throw new Error(erp.mensagem || "Falha ao sincronizar");
+}
+
+function erroErpRetentavel(msg) {
+  const texto = String(msg || "").toLowerCase();
+  return texto.includes("offline") ||
+    texto.includes("bloquead") ||
+    texto.includes("limite") ||
+    texto.includes("timeout") ||
+    texto.includes("excedido");
+}
+
+async function processarFilaErp() {
+  if (filaErpRodando) return;
+  filaErpRodando = true;
+
+  while (filaErp.length) {
+    filaErpAtual = filaErp.shift();
+    atualizarHeaderFilaErp();
+    try {
+      await processarItemFilaErp(filaErpAtual);
+    } catch(e) {
+      console.warn("Fila Tiny:", e.message);
+      if (filaErpAtual?.tipo === "sku") {
+        try { await apiAtualizarStatusErp(filaErpAtual.sku, false, e.message); } catch(e2) {}
+      }
+      filaErpAtual.tentativas = (filaErpAtual.tentativas || 0) + 1;
+      const deveTentarNovamente = erroErpRetentavel(e.message) && filaErpAtual.tentativas < ERP_MAX_TENTATIVAS_FILA;
+      if (deveTentarNovamente) filaErp.push(filaErpAtual);
+      filaErpAtual = null;
+      atualizarHeaderFilaErp();
+      if (deveTentarNovamente) await new Promise(resolve => setTimeout(resolve, 12000));
+    }
+  }
+
+  filaErpAtual = null;
+  filaErpRodando = false;
+  atualizarHeaderFilaErp();
+}
+
+async function sincronizarTodosErp() {
+  el("btnSyncErp").disabled = true;
+  el("btnSyncErp").textContent = "Lendo Supabase...";
+  try {
+    const linhas = await apiListarTudo();
+    const lote = montarPayloadSyncLote(linhas);
+    const { itens, ignorados, totalComPosicao } = lote;
+    if (!itens.length) {
+      alert("Nenhum SKU com coordenada foi encontrado no Localizador.");
+      return;
+    }
+
+    console.log(`[Tiny V3] ${itens.length}/${totalComPosicao} SKU(s) com coordenada serao verificados no Tiny.`);
+    await iniciarSyncLoteComModal(itens);
+  } catch(e) {
+    alert("Falha ao enfileirar sincronizacao: " + e.message);
+  } finally {
+    el("btnSyncErp").disabled = false;
+    el("btnSyncErp").textContent = "Atualizar Tiny";
+  }
+}
+
+async function consultarSkuErp(sku) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(
+      erpUrl("/consultar?sku=" + encodeURIComponent(sku)),
+      { signal: ctrl.signal }
+    );
+    clearTimeout(t);
+    if (!r.ok) return { encontrado: false };
+    return await r.json();
+  } catch(e) {
+    return { encontrado: false };
+  }
+}
+
+async function verificarDuplicidades(corpo) {
+  const bloqueios = [];
+
+  if (modoCadastro) {
+    const existente = await apiBuscarPorSku(corpo.sku);
+    if (existente.length > 0) {
+      bloqueios.push(
+        `SKU ${corpo.sku} ja cadastrado em ${montarPosicao(existente[0])}. Use Buscar para alterar a posicao.`
+      );
+    }
+  }
+  return { bloqueios };
+}
+
+// ===== ESTRUTURA (SETOR > PRATELEIRA > CAIXA) =====
+async function carregarEstrutura() {
+  try {
+    const linhas = await apiListarEstrutura();
+    const nova = {};
+    linhas.forEach(l => {
+      const setor = String(l.setor), prat = String(l.prateleira);
+      if (!nova[setor]) nova[setor] = {};
+      const atual = nova[setor][prat];
+      nova[setor][prat] = {
+        caixas: Math.max(Number(atual?.caixas || 0), Number(l.caixas || 0)),
+        capacidade: Math.max(
+          Number(atual?.capacidade || CAPACIDADE_CAIXA_PADRAO),
+          Number(l.capacidade_sku || CAPACIDADE_CAIXA_PADRAO)
+        )
+      };
+    });
+    estruturaCache = nova;
+  } catch(e) {
+    console.warn("Erro ao carregar estrutura:", e.message);
+  }
+}
+
+function atualizarSetores() {
+  const sel = el("setorInput");
+  const valorAtual = sel.value;
+  sel.innerHTML = "";
+  const setores = Object.keys(estruturaCache || {}).map(Number).sort((a,b)=>a-b);
+  setores.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = n + "S";
+    opt.textContent = n + "S";
+    sel.appendChild(opt);
+  });
+  if (setores.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Nenhum setor configurado";
+    sel.appendChild(opt);
+  }
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) sel.value = valorAtual;
+  atualizarPrateleiras();
+}
+
+function atualizarPrateleiras() {
+  const setorVal = el("setorInput").value;
+  const setorNum = setorVal ? setorVal.replace("S", "") : "";
+  const sel = el("prateleiraInput");
+  const valorAtual = sel.value;
+  sel.innerHTML = "";
+  const mapaSetor = setorNum ? estruturaCache[setorNum] : null;
+  const prateleiras = mapaSetor ? Object.keys(mapaSetor).map(Number).sort((a,b)=>a-b) : [];
+  prateleiras.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = "P" + n;
+    opt.textContent = "P" + n;
+    sel.appendChild(opt);
+  });
+  if (prateleiras.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Sem prateleiras";
+    sel.appendChild(opt);
+  }
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) sel.value = valorAtual;
+  atualizarCaixas();
+}
+
+function atualizarCaixas() {
+  const setorVal = el("setorInput").value;
+  const setorNum = setorVal ? setorVal.replace("S", "") : "";
+  const pratVal = el("prateleiraInput").value;
+  const pratNum = pratVal ? pratVal.replace("P", "") : "";
+  const sel = el("caixaInput");
+  const valorAtual = sel.value;
+  sel.innerHTML = "";
+  const qtd = (setorNum && pratNum && estruturaCache[setorNum])
+    ? obterQtdCaixas(estruturaCache[setorNum], pratNum) : 0;
+  for (let i = 1; i <= qtd; i++) {
+    const opt = document.createElement("option");
+    opt.value = "C" + i;
+    opt.textContent = "C" + i;
+    sel.appendChild(opt);
+  }
+  if (qtd === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Sem caixas";
+    sel.appendChild(opt);
+  }
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) sel.value = valorAtual;
+}
+
+function selecionarCascata(andar, setor, prateleira, caixa) {
+  atualizarSetores();
+  if (setor && el("setorInput").querySelector(`option[value="${setor}"]`)) el("setorInput").value = setor;
+  atualizarPrateleiras();
+  if (prateleira && el("prateleiraInput").querySelector(`option[value="${prateleira}"]`)) el("prateleiraInput").value = prateleira;
+  atualizarCaixas();
+  if (caixa && el("caixaInput").querySelector(`option[value="${caixa}"]`)) el("caixaInput").value = caixa;
+}
+
+// ===== ULTIMA LOC =====
+function salvarUltimaLoc(loc) {
+  try { localStorage.setItem("estoque_ultima_loc", JSON.stringify(loc)); } catch(e){}
+}
+function obterUltimaLoc() {
+  try {
+    const r = localStorage.getItem("estoque_ultima_loc");
+    return r ? JSON.parse(r) : null;
+  } catch(e) { return null; }
+}
+
+// ===== OPERADOR =====
+const OPERADOR_PADRAO = "LUIZ";
+let operadorAtual = OPERADOR_PADRAO;
+
+function obterUltimoOperador() {
+  try {
+    return String(localStorage.getItem("estoque_ultimo_operador") || OPERADOR_PADRAO).trim().toUpperCase();
+  } catch(e) {
+    return OPERADOR_PADRAO;
+  }
+}
+
+function selecionarOperador(nome) {
+  const operador = String(nome || OPERADOR_PADRAO).trim().toUpperCase();
+  operadorAtual = operador;
+  el("operadorInput").value = operador;
+  el("operadorInput").setAttribute("value", operador);
+  el("operadorOpcoes").dataset.selecionado = operador;
+  document.querySelectorAll("[data-operador]").forEach(btn => {
+    btn.classList.toggle("ativo", btn.dataset.operador === operador);
+  });
+  const outro = el("btnOutroOperador");
+  const personalizado = !["ANDERSON", "LUIZ"].includes(operador);
+  outro.classList.toggle("ativo", personalizado);
+  outro.textContent = personalizado ? operador : "Adicionar outro";
+}
+
+function adicionarOutroOperador() {
+  const nome = prompt("Nome do operador:", "");
+  if (nome && nome.trim()) selecionarOperador(nome);
+}
+
+function salvarUltimoOperador(nome) {
+  const operador = String(nome || OPERADOR_PADRAO).trim().toUpperCase();
+  try { localStorage.setItem("estoque_ultimo_operador", operador); } catch(e) {}
+  selecionarOperador(operador);
+}
+
+// ===== API =====
+async function apiBuscarPorSku(sku) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA}?sku=eq.${encodeURIComponent(sku)}&select=*`,
+    { headers }
+  );
+  if (!r.ok) throw new Error("Falha (" + r.status + ")");
+  return r.json();
+}
+
+async function apiListarTudo() {
+  const tamanhoPagina = 1000;
+  const todos = [];
+
+  for (let inicio = 0; ; inicio += tamanhoPagina) {
+    const fim = inicio + tamanhoPagina - 1;
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/${TABELA}?select=*&order=atualizado_em.desc.nullslast,sku.asc`,
+      { headers: { ...headers, "Range": `${inicio}-${fim}` } }
+    );
+    if (!r.ok) throw new Error("Falha ao carregar itens (" + r.status + ")");
+
+    const pagina = await r.json();
+    todos.push(...pagina);
+    if (pagina.length < tamanhoPagina) break;
+  }
+
+  return todos;
+}
+
+async function apiBuscarPorPosicao(corpo, excluirSku) {
+  const q = [
+    `setor=eq.${encodeURIComponent(corpo.setor)}`,
+    `prateleira=eq.${encodeURIComponent(corpo.prateleira)}`,
+    `caixa=eq.${encodeURIComponent(corpo.caixa)}`,
+    `lado=eq.${encodeURIComponent(corpo.lado)}`,
+    "select=sku,andar,setor,prateleira,caixa,lado"
+  ];
+  if (excluirSku) q.push(`sku=neq.${encodeURIComponent(excluirSku)}`);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABELA}?${q.join("&")}`, { headers });
+  if (!r.ok) throw new Error("Falha ao consultar posicao (" + r.status + ")");
+  return r.json();
+}
+
+async function apiInserir(corpo) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABELA}`, {
+    method: "POST",
+    headers: { ...headers, "Prefer": "return=representation" },
+    body: JSON.stringify(corpo)
+  });
+  if (!r.ok) throw new Error(await r.text() || "status " + r.status);
+  return r.json();
+}
+
+async function apiAtualizar(sku, corpo) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA}?sku=eq.${encodeURIComponent(sku)}`,
+    {
+      method: "PATCH",
+      headers: { ...headers, "Prefer": "return=representation" },
+      body: JSON.stringify(corpo)
+    }
+  );
+  if (!r.ok) throw new Error(await r.text() || "status " + r.status);
+  return r.json();
+}
+
+async function apiDeletar(sku) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA}?sku=eq.${encodeURIComponent(sku)}`,
+    { method: "DELETE", headers }
+  );
+  if (!r.ok) throw new Error(await r.text() || "status " + r.status);
+}
+
+async function apiRenomearSku(skuAntigo, skuNovo) {
+  const conflito = await apiBuscarPorSku(skuNovo);
+  if (conflito.length) throw new Error(`O SKU ${skuNovo} ja existe no Supabase.`);
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA}?sku=eq.${encodeURIComponent(skuAntigo)}`,
+    {
+      method: "PATCH",
+      headers: { ...headers, "Prefer": "return=representation" },
+      body: JSON.stringify({ sku: skuNovo })
+    }
+  );
+  if (!r.ok) throw new Error(await r.text() || "Falha ao renomear SKU no Supabase");
+  const alterados = await r.json();
+  if (!alterados.length) throw new Error("SKU original nao encontrado no Supabase.");
+  return alterados[0];
+}
+
+// ===== API ESTRUTURA (SETOR / PRATELEIRA / CAIXA) =====
+async function apiListarEstrutura() {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA_ESTRUTURA}?select=*&order=setor.asc,prateleira.asc`,
+    { headers }
+  );
+  if (!r.ok) throw new Error("Falha (" + r.status + ")");
+  return r.json();
+}
+
+async function apiUpsertEstrutura(setor, prateleira, caixas, capacidadeSku) {
+  const body = { andar: ANDAR_PADRAO, setor, prateleira, caixas };
+  if (capacidadeSku) body.capacidade_sku = capacidadeSku;
+  const enviar = conflito => fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA_ESTRUTURA}?on_conflict=${conflito}`,
+    {
+      method: "POST",
+      headers: { ...headers, "Prefer": "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(body)
+    }
+  );
+  let r = await enviar("setor,prateleira");
+  if (!r.ok) r = await enviar("andar,setor,prateleira");
+  if (!r.ok) throw new Error(await r.text() || "status " + r.status);
+  return r.json();
+}
+
+async function apiDeletarEstrutura(setor, prateleira) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA_ESTRUTURA}?setor=eq.${setor}&prateleira=eq.${prateleira}`,
+    { method: "DELETE", headers }
+  );
+  if (!r.ok) throw new Error(await r.text() || "status " + r.status);
+}
+
+async function apiRegistrarHistorico(entry) {
+  const row = {
+    sku: entry.sku,
+    operador: entry.operador || "",
+    posicao_anterior: entry.posicao_anterior || "",
+    posicao_nova: entry.posicao_nova || "",
+    acao: entry.acao,
+    criado_em: new Date().toISOString()
+  };
+  let erroRemoto = "";
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABELA_HISTORICO}`, {
+      method: "POST",
+      headers: { ...headers, "Prefer": "return=minimal" },
+      body: JSON.stringify(row)
+    });
+    if (!r.ok) throw new Error(await r.text() || "Falha ao registrar historico");
+  } catch(e) {
+    erroRemoto = e.message || String(e);
+    console.error("Historico compartilhado indisponivel:", erroRemoto);
+  }
+  try {
+    const local = JSON.parse(localStorage.getItem("estoque_historico") || "[]");
+    local.unshift(row);
+    localStorage.setItem("estoque_historico", JSON.stringify(local.slice(0, 500)));
+  } catch(e) {}
+  try {
+    await fetch(erpUrl("/audit-events"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row)
+    });
+  } catch(e) {}
+  return { remoto: !erroRemoto, erro: erroRemoto };
+}
+
+async function registrarSnapshotAuditoria(rows) {
+  try {
+    await fetch(erpUrl("/audit-snapshot"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itens: rows.map(r => ({ sku: r.sku, posicao: montarPosicao(r) })) })
+    });
+  } catch(e) {}
+}
+
+async function apiAtualizarStatusErp(sku, ok, msgErro) {
+  const patch = {
+    sincronizado_erp_em: ok ? new Date().toISOString() : null,
+    erro_erp: ok ? null : String(msgErro || "erro").slice(0, 500)
+  };
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABELA}?sku=eq.${encodeURIComponent(sku)}`,
+    {
+      method: "PATCH",
+      headers: { ...headers, "Prefer": "return=minimal" },
+      body: JSON.stringify(patch)
+    }
+  );
+  if (!r.ok) throw new Error(await r.text() || "Falha ao atualizar status ERP");
+}
+
+async function renomearSkuErp(skuAntigo, skuNovo, localizacao) {
+  try {
+    const r = await fetch(erpUrl("/renomear-sku"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sku_antigo: skuAntigo, sku_novo: skuNovo, localizacao })
+    });
+    const data = await r.json().catch(() => ({}));
+    return { ok: r.ok && !!data.ok, mensagem: data.mensagem || data.erro || "Falha ao renomear SKU no Tiny" };
+  } catch(e) {
+    return { ok: false, mensagem: "Servidor ERP offline" };
+  }
+}
+
+function posicaoCaixaDeDataset(ds) {
+  return {
+    andar: ANDAR_PADRAO,
+    setor: ds.setor,
+    prateleira: ds.prateleira,
+    caixa: ds.caixa
+  };
+}
+
+function mesmaCaixa(a, b) {
+  return !!a && !!b &&
+    a.setor === b.setor &&
+    a.prateleira === b.prateleira &&
+    a.caixa === b.caixa;
+}
+
+function rowsNaCaixa(pos) {
+  return (painelDados || []).filter(r => mesmaCaixa(r, pos));
+}
+
+function aplicarCaixaNaLinha(row, caixaDestino) {
+  return {
+    sku: row.sku,
+    andar: ANDAR_PADRAO,
+    setor: caixaDestino.setor,
+    prateleira: caixaDestino.prateleira,
+    caixa: caixaDestino.caixa,
+    lado: row.lado || "",
+    nivel: row.nivel || "pouca",
+    operador: row.operador || "arraste",
+    atualizado_em: new Date().toISOString()
+  };
+}
+
+async function atualizarLinhaArraste(row, caixaDestino, acao) {
+  const corpo = aplicarCaixaNaLinha(row, caixaDestino);
+  const anterior = montarPosicao(row);
+  const nova = montarPosicao(corpo);
+  await apiAtualizar(row.sku, corpo);
+  await apiRegistrarHistorico({
+    sku: row.sku,
+    operador: corpo.operador,
+    posicao_anterior: anterior,
+    posicao_nova: nova,
+    acao
+  });
+  enfileirarSyncSku(row.sku, nova);
+}
+
+async function moverSkuParaCaixa(sku, caixaDestino) {
+  const row = (painelDados || []).find(r => r.sku === sku) || (await apiBuscarPorSku(sku))[0];
+  if (!row) throw new Error("SKU nao encontrado.");
+  if (mesmaCaixa(row, caixaDestino)) return { total: 0 };
+  await atualizarLinhaArraste(row, caixaDestino, "arraste_sku");
+  return { total: 1 };
+}
+
+async function moverSkusParaCaixa(skus, caixaDestino) {
+  const unicos = [...new Set(skus)].filter(Boolean);
+  let total = 0;
+  for (const sku of unicos) {
+    const res = await moverSkuParaCaixa(sku, caixaDestino);
+    total += res.total;
+  }
+  return { total };
+}
+
+async function moverCaixaInteira(caixaOrigem, caixaDestino) {
+  const origemRows = rowsNaCaixa(caixaOrigem);
+  if (!origemRows.length) throw new Error("Caixa de origem esta vazia.");
+  for (const row of origemRows) {
+    await atualizarLinhaArraste(row, caixaDestino, "arraste_caixa_mover");
+  }
+  return { total: origemRows.length };
+}
+
+async function trocarCaixas(caixaOrigem, caixaDestino) {
+  const origemRows = rowsNaCaixa(caixaOrigem);
+  const destinoRows = rowsNaCaixa(caixaDestino);
+  if (!origemRows.length && !destinoRows.length) throw new Error("As duas caixas estao vazias.");
+  for (const row of origemRows) {
+    await atualizarLinhaArraste(row, caixaDestino, "arraste_caixa_troca");
+  }
+  for (const row of destinoRows) {
+    await atualizarLinhaArraste(row, caixaOrigem, "arraste_caixa_troca");
+  }
+  return { total: origemRows.length + destinoRows.length };
+}
+
+function abrirModalMoverCaixa(caixaOrigem, caixaDestino) {
+  const origemRows = rowsNaCaixa(caixaOrigem);
+  const destinoRows = rowsNaCaixa(caixaDestino);
+  el("modalTitulo").textContent = "Mover caixa";
+  el("modalAviso").textContent =
+    `${montarPosicao(caixaOrigem)} (${origemRows.length} SKU) -> ${montarPosicao(caixaDestino)} (${destinoRows.length} SKU)`;
+  el("modalConteudo").innerHTML = `
+    <div class="modal-drag-opcoes">
+      <button id="btnDragMover">
+        Mover todos para a caixa nova
+        <small>Leva os SKUs da caixa original para a caixa nova e mantem os SKUs que ja estavam la.</small>
+      </button>
+      <button id="btnDragTrocar">
+        Trocar os SKUs das caixas
+        <small>Os SKUs da caixa original vao para a caixa nova, e os da caixa nova voltam para a original.</small>
+      </button>
+    </div>`;
+  el("modalBtns").innerHTML = `<button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>`;
+  el("modalOverlay").classList.add("visivel");
+
+  const executar = async (tipo, btn) => {
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+    try {
+      const res = tipo === "mover"
+        ? await moverCaixaInteira(caixaOrigem, caixaDestino)
+        : await trocarCaixas(caixaOrigem, caixaDestino);
+      fecharModal();
+      await carregarPainelSetores();
+      alert(`Pronto: ${res.total} SKU(s) atualizado(s).`);
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = tipo === "mover" ? "Mover todos para a caixa nova" : "Trocar os SKUs das caixas";
+      el("modalAviso").textContent = "Erro: " + e.message;
+    }
+  };
+
+  el("btnDragMover").onclick = () => executar("mover", el("btnDragMover"));
+  el("btnDragTrocar").onclick = () => executar("trocar", el("btnDragTrocar"));
+}
+
+async function soltarSkuEmCaixa(sku, caixaDestino) {
+  try {
+    const grupo = skusSelecionadosPainel.has(sku)
+      ? [...skusSelecionadosPainel]
+      : [sku];
+    const res = await moverSkusParaCaixa(grupo, caixaDestino);
+    grupo.forEach(s => skusSelecionadosPainel.delete(s));
+    await carregarPainelSetores();
+    if (res.total > 0) setStatus("online", `${res.total} SKU(s) movido(s)`);
+  } catch(e) {
+    alert("Erro ao mover SKU: " + e.message);
+  }
+}
+
+// ===== KEEP-ALIVE =====
+async function manterProjetoAtivo() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/${TABELA}?select=sku&limit=1`, { headers });
+    localStorage.setItem("estoque_ultimo_ping", new Date().toISOString());
+    setStatus("online", "Online");
+  } catch(e) {
+    setStatus("offline", "Sem conexao");
+  }
+}
+function setStatus(tipo, texto) {
+  el("dotStatus").className = "dot " + (tipo === "online" ? "" : tipo);
+  el("textoStatus").textContent = texto;
+}
+function verificarAvisoKeepalive() {
+  const ultimo = localStorage.getItem("estoque_ultimo_ping");
+  if (!ultimo) return;
+  const dias = (Date.now() - new Date(ultimo).getTime()) / 86400000;
+  if (dias > 5) {
+    const av = el("avisoKeepalive");
+    const texto = `Supabase: ${Math.floor(dias)} dia(s) sem acesso`;
+    av.textContent = texto;
+    av.title = `ATENCAO: app nao aberto ha ${Math.floor(dias)} dia(s). Apos 7 dias sem acesso o Supabase pausa o projeto.`;
+    av.style.display = "block";
+  }
+}
+
+// ===== BACKUP =====
+function salvarBackupLocal(dados) {
+  try {
+    const b = { gerado_em: new Date().toISOString(), total: dados.length, registros: dados };
+    localStorage.setItem("estoque_backup_json", JSON.stringify(b));
+  } catch(e) { console.warn("Backup local falhou:", e.message); }
+}
+
+function baixarBackupJSON() {
+  const raw = localStorage.getItem("estoque_backup_json");
+  let conteudo;
+  if (raw) {
+    try { conteudo = JSON.stringify(JSON.parse(raw), null, 2); } catch(e) { conteudo = raw; }
+  } else if (dadosCache.length > 0) {
+    conteudo = JSON.stringify({ gerado_em: new Date().toISOString(), total: dadosCache.length, registros: dadosCache }, null, 2);
+  } else {
+    alert("Nenhum dado disponivel ainda. Aguarde o carregamento.");
+    return;
+  }
+  const blob = new Blob([conteudo], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `estoque_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== MODAL =====
+function fecharModal() {
+  el("modalOverlay").classList.remove("visivel");
+  el("modalBox").classList.remove("wide");
+}
+
+// ===== MODAL: GERENCIAR ESTRUTURA =====
+function abrirModalEstrutura() {
+  el("modalBox").classList.add("wide");
+  el("modalTitulo").textContent = "Gerenciar Estrutura";
+  el("modalAviso").textContent =
+    "Configure quantas prateleiras cada setor tem e quantas caixas cada prateleira tem. O novo padrao nao usa andar: exemplo 6S-P3C2.";
+  el("modalConteudo").innerHTML = `
+    <div class="grid2">
+      <div>
+        <label style="margin-top:0;">Setor (numero)</label>
+        <input type="number" id="estSetorNum" placeholder="Ex: 6" min="1">
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Prateleira (numero)</label>
+        <input type="number" id="estPrateleiraNum" placeholder="Ex: 2" min="1">
+      </div>
+      <div>
+        <label>Qtd. de caixas</label>
+        <input type="number" id="estCaixasQtd" placeholder="Ex: 10" min="1">
+      </div>
+    </div>
+    <label>Capacidade max. SKU por caixa/lado</label>
+    <input type="number" id="estCapacidade" placeholder="Padrao: ${CAPACIDADE_CAIXA_PADRAO}" min="1" value="${CAPACIDADE_CAIXA_PADRAO}">
+    <button class="btn-novo" id="btnSalvarEstrutura" style="margin-top:10px;">Salvar / Atualizar Prateleira</button>
+    <div class="msg" id="msgEstrutura"></div>
+    <div id="listaEstrutura" style="margin-top:14px;max-height:240px;overflow-y:auto;"></div>
+  `;
+  el("modalBtns").innerHTML = `<button class="btn-modal-cancel" onclick="fecharModal()">Fechar</button>`;
+  el("modalOverlay").classList.add("visivel");
+
+  el("btnSalvarEstrutura").addEventListener("click", salvarConfigEstrutura);
+
+  renderListaEstrutura();
+}
+
+function renderListaEstrutura() {
+  const cont = el("listaEstrutura");
+  const setores = Object.keys(estruturaCache || {}).map(Number).sort((a,b)=>a-b);
+  if (setores.length === 0) {
+    cont.innerHTML = '<p style="color:var(--cinza2);font-size:14px;">Nenhuma estrutura cadastrada ainda.</p>';
+    return;
+  }
+  cont.innerHTML = setores.map(s => {
+    const prats = Object.keys(estruturaCache[s]).map(Number).sort((a,b)=>a-b);
+    const linhas = prats.map(p => {
+      const info = estruturaCache[s][p];
+      const cx = typeof info === "object" ? info.caixas : info;
+      const cap = typeof info === "object" ? info.capacidade : CAPACIDADE_CAIXA_PADRAO;
+      return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--preto4);font-size:14px;">
+        <span>Prateleira P${p} - ${cx} caixa(s) - cap. ${cap} SKU/lado</span>
+        <button class="btn-danger" style="width:auto;margin:0;padding:5px 10px;font-size:11px;" onclick="deletarLinhaEstrutura(${s},${p})">Remover</button>
+      </div>
+    `;
+    }).join("");
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="font-weight:800;color:var(--roxo-claro);font-size:13px;letter-spacing:1px;margin-bottom:4px;">SETOR ${s}</div>
+        ${linhas}
+      </div>
+    `;
+  }).join("");
+}
+
+async function salvarConfigEstrutura() {
+  const setor = parseInt(el("estSetorNum").value, 10);
+  const prateleira = parseInt(el("estPrateleiraNum").value, 10);
+  const caixas = parseInt(el("estCaixasQtd").value, 10);
+  const capacidade = parseInt(el("estCapacidade").value, 10) || CAPACIDADE_CAIXA_PADRAO;
+
+  if (!setor || !prateleira || !caixas) {
+    setMsg("msgEstrutura", "Preencha setor, prateleira e quantidade de caixas.", "erro");
+    return;
+  }
+
+  el("btnSalvarEstrutura").disabled = true;
+  setMsg("msgEstrutura", "Salvando...", "info");
+
+  try {
+    await apiUpsertEstrutura(setor, prateleira, caixas, capacidade);
+    setMsg("msgEstrutura", "Configuracao salva!", "ok");
+    el("estPrateleiraNum").value = "";
+    el("estCaixasQtd").value = "";
+    await carregarEstrutura();
+    renderListaEstrutura();
+    atualizarSetores();
+    atualizarBpSetores();
+    if (Array.isArray(painelDados)) renderPainel(painelDados, false);
+  } catch(e) {
+    setMsg("msgEstrutura", "Erro: " + e.message, "erro");
+  } finally {
+    el("btnSalvarEstrutura").disabled = false;
+  }
+}
+
+async function deletarLinhaEstrutura(setor, prateleira) {
+  if (!confirm(`Remover Prateleira P${prateleira} do Setor ${setor}? Isso nao apaga SKUs ja cadastrados nessa posicao, apenas a opcao no formulario.`)) return;
+  try {
+    await apiDeletarEstrutura(setor, prateleira);
+    await carregarEstrutura();
+    renderListaEstrutura();
+    atualizarSetores();
+    atualizarBpSetores();
+    if (Array.isArray(painelDados)) renderPainel(painelDados, false);
+  } catch(e) {
+    alert("Erro ao remover: " + e.message);
+  }
+}
+
+function abrirModalEditarSku() {
+  el("modalTitulo").textContent = "Editar Codigo SKU";
+  el("modalAviso").textContent =
+    `SKU atual: ${skuAtual}\nO registro sera movido para o novo codigo. Todos os dados de posicao serao mantidos.`;
+  el("modalConteudo").innerHTML = `
+    <label style="margin-top:0;">Novo codigo SKU</label>
+    <input type="text" id="novoSkuInput" value="${skuAtual}" autocomplete="off" style="font-size:17px;">
+    <div class="msg" id="msgModal" style="margin-top:8px;"></div>
+  `;
+  el("modalBtns").innerHTML = `
+    <button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>
+    <button class="btn-modal-ok" id="btnConfirmarEditSku">Salvar novo SKU</button>
+  `;
+  el("modalOverlay").classList.add("visivel");
+
+  el("btnConfirmarEditSku").onclick = async () => {
+    const novoSku = el("novoSkuInput").value.trim().toUpperCase();
+    if (!novoSku || novoSku === skuAtual) {
+      el("msgModal").textContent = "Digite um codigo diferente do atual.";
+      el("msgModal").className = "msg erro visivel";
+      return;
+    }
+    el("btnConfirmarEditSku").disabled = true;
+    el("btnConfirmarEditSku").textContent = "Salvando...";
+    try {
+      const skuVelho = skuAtual;
+      const ant = await apiBuscarPorSku(skuVelho);
+      const posAnt = ant.length ? montarPosicao(ant[0]) : "";
+      const posAtual = el("posicaoTexto").textContent || posAnt;
+      if ((await apiBuscarPorSku(novoSku)).length) {
+        throw new Error(`O SKU ${novoSku} ja existe no Supabase.`);
+      }
+      if (!await verificarServidorErp()) {
+        throw new Error("Servidor Tiny ERP offline. A renomeacao nao foi iniciada.");
+      }
+      const erpRen = await renomearSkuErp(skuVelho, novoSku, posAtual);
+      if (!erpRen.ok) throw new Error(erpRen.mensagem || "Tiny recusou a renomeacao.");
+      try {
+        await apiRenomearSku(skuVelho, novoSku);
+      } catch (erroSupabase) {
+        const rollback = await renomearSkuErp(novoSku, skuVelho, posAtual);
+        const detalheRollback = rollback.ok
+          ? "A alteracao no Tiny foi desfeita."
+          : "ATENCAO: nao foi possivel desfazer a alteracao no Tiny.";
+        throw new Error(`${erroSupabase.message} ${detalheRollback}`);
+      }
+      await apiAtualizarStatusErp(novoSku, true, "");
+      await apiRegistrarHistorico({
+        sku: novoSku,
+        operador: el("operadorOpcoes").dataset.selecionado || operadorAtual,
+        posicao_anterior: posAnt,
+        posicao_nova: posAtual,
+        acao: "renomeacao"
+      });
+      fecharModal();
+      skuAtual = novoSku;
+      el("skuBusca").value = novoSku;
+      setMsg("msgSalvar", "SKU atualizado para " + novoSku, "ok");
+      await carregarPainelSetores();
+      // Rebusca para atualizar o painel
+      const dados = await apiBuscarPorSku(novoSku);
+      if (dados.length) {
+        const linha = dados[0];
+        el("posicaoTexto").textContent = montarPosicao(linha);
+        el("blocoResultado").classList.add("visivel");
+      }
+    } catch(e) {
+      el("msgModal").textContent = "Erro: " + e.message;
+      el("msgModal").className = "msg erro visivel";
+      el("btnConfirmarEditSku").disabled = false;
+      el("btnConfirmarEditSku").textContent = "Salvar novo SKU";
+    }
+  };
+}
+
+function abrirModalDeletar() {
+  el("modalTitulo").textContent = "Deletar SKU";
+  el("modalAviso").textContent =
+    `Tem certeza que deseja remover "${skuAtual}" do sistema? Esta acao nao pode ser desfeita.`;
+  el("modalConteudo").innerHTML = "";
+  el("modalBtns").innerHTML = `
+    <button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>
+    <button class="btn-modal-delete" id="btnConfirmarDelete">Deletar permanentemente</button>
+  `;
+  el("modalOverlay").classList.add("visivel");
+
+  el("btnConfirmarDelete").onclick = async () => {
+    el("btnConfirmarDelete").disabled = true;
+    el("btnConfirmarDelete").textContent = "Deletando...";
+    try {
+      const ant = await apiBuscarPorSku(skuAtual);
+      const posAnt = ant.length ? montarPosicao(ant[0]) : "";
+      await apiDeletar(skuAtual);
+      await apiRegistrarHistorico({
+        sku: skuAtual,
+        operador: el("operadorOpcoes").dataset.selecionado || operadorAtual,
+        posicao_anterior: posAnt,
+        posicao_nova: "",
+        acao: "exclusao"
+      });
+      fecharModal();
+      skuAtual = null;
+      el("skuBusca").value = "";
+      el("blocoResultado").classList.remove("visivel");
+      el("cardFormulario").classList.remove("visivel");
+      el("bannerNaoEncontrado").classList.remove("visivel");
+      setMsg("msgBusca", "SKU removido do sistema.", "ok");
+      await carregarPainelSetores();
+    } catch(e) {
+      fecharModal();
+      setMsg("msgSalvar", "Erro ao deletar: " + e.message, "erro");
+    }
+  };
+}
+
+// ===== BUSCA =====
+function limparBusca() {
+  limparMsg("msgBusca");
+  el("blocoResultado").classList.remove("visivel");
+  el("bannerNaoEncontrado").classList.remove("visivel");
+  el("cardFormulario").classList.remove("visivel");
+  el("btnEditarSku").style.display = "none";
+  el("btnDeletar").style.display = "none";
+  limparMsg("msgSalvar");
+}
+
+async function buscarSku() {
+  const sku = el("skuBusca").value.trim().toUpperCase();
+  limparBusca();
+  if (!sku) { setMsg("msgBusca", "Digite um SKU.", "erro"); return; }
+
+  skuAtual = sku;
+  el("btnBuscar").disabled = true;
+  el("btnBuscar").textContent = "Buscando...";
+
+  try {
+    const dados = await apiBuscarPorSku(sku);
+
+    if (dados.length === 0) {
+      el("bannerNaoEncontrado").classList.add("visivel");
+      return;
+    }
+
+    const linha = dados[0];
+    el("posicaoTexto").textContent = montarPosicao(linha);
+
+    let sub = "";
+    if (linha.atualizado_em) sub += "Atualizado em " + formatarDataHora(linha.atualizado_em);
+    if (linha.operador) sub += (sub ? "\n" : "") + "Operador: " + linha.operador;
+    el("atualizadoTexto").textContent = sub;
+    el("blocoResultado").classList.add("visivel");
+
+    abrirFormularioTroca(sku, linha);
+
+  } catch(e) {
+    setMsg("msgBusca", "Erro ao buscar: " + e.message, "erro");
+  } finally {
+    el("btnBuscar").disabled = false;
+    el("btnBuscar").textContent = "Buscar";
+  }
+}
+
+// ===== FORMULARIO =====
+function preencherFormularioVazio() {
+  const ult = obterUltimaLoc();
+  selecionarCascata(null, ult?.setor, ult?.prateleira, ult?.caixa);
+  el("ladoInput").value = ult?.lado || "";
+  selecionarOperador(obterUltimoOperador());
+}
+
+function abrirFormularioTroca(sku, linha) {
+  modoCadastro = false;
+  el("tituloFormulario").textContent = "Trocar posicao de " + sku;
+  selecionarCascata(null, linha.setor, linha.prateleira, linha.caixa);
+  el("ladoInput").value = linha.lado || "";
+  if (linha.nivel) el("nivelInput").value = linha.nivel;
+  selecionarOperador(obterUltimoOperador());
+  atualizarCorSelectNivel();
+  el("cardFormulario").classList.add("visivel");
+  el("btnEditarSku").style.display = "block";
+  el("btnDeletar").style.display   = "block";
+  limparMsg("msgSalvar");
+}
+
+function mostrarCadastro() {
+  modoCadastro = true;
+  el("tituloFormulario").textContent = "Cadastrar " + skuAtual;
+  preencherFormularioVazio();
+  el("cardFormulario").classList.add("visivel");
+  el("btnEditarSku").style.display = "none";
+  el("btnDeletar").style.display   = "none";
+  limparMsg("msgSalvar");
+}
+
+async function salvarPosicao() {
+  if (!skuAtual) return;
+
+  const setorVal = el("setorInput").value;
+  const pratVal = el("prateleiraInput").value;
+  const caixaVal = el("caixaInput").value;
+  if (!setorVal || !pratVal || !caixaVal) {
+    setMsg("msgSalvar", "Selecione setor, prateleira e caixa. Se a lista estiver vazia, cadastre a estrutura primeiro no botao 'Gerenciar Estrutura'.", "erro");
+    return;
+  }
+  const corpo = {
+    sku:          skuAtual,
+    andar:        ANDAR_PADRAO,
+    setor:        setorVal,
+    prateleira:   pratVal,
+    caixa:        caixaVal,
+    lado:         el("ladoInput").value || "",
+    nivel:        el("nivelInput").value,
+    operador:     el("operadorOpcoes").dataset.selecionado || operadorAtual || OPERADOR_PADRAO,
+    atualizado_em: new Date().toISOString()
+  };
+
+  el("btnSalvar").disabled = true;
+  setMsg("msgSalvar", "Salvando...", "info");
+
+  let posicaoAnterior = "";
+  try {
+    const ant = await apiBuscarPorSku(skuAtual);
+    if (ant.length) posicaoAnterior = montarPosicao(ant[0]);
+  } catch(e) {}
+
+  try {
+    const { bloqueios } = await verificarDuplicidades(corpo);
+    if (bloqueios.length) {
+      setMsg("msgSalvar", bloqueios[0], "erro");
+      return;
+    }
+
+    setMsg("msgSalvar", "Salvando...", "info");
+
+    if (modoCadastro) {
+      await apiInserir(corpo);
+    } else {
+      await apiAtualizar(skuAtual, corpo);
+    }
+
+    const posicaoStr = montarPosicao(corpo);
+    let msgFinal = "Posicao salva. Tiny entrou na fila em segundo plano.";
+    enfileirarSyncSku(skuAtual, posicaoStr);
+    const historico = await apiRegistrarHistorico({
+      sku: skuAtual,
+      operador: corpo.operador,
+      posicao_anterior: modoCadastro ? "" : posicaoAnterior,
+      posicao_nova: posicaoStr,
+      acao: modoCadastro ? "cadastro" : "alteracao"
+    });
+    if (!historico.remoto) {
+      msgFinal += " Historico compartilhado indisponivel; o registro ficou salvo neste PC.";
+    }
+    setMsg("msgSalvar", msgFinal, "ok");
+    salvarUltimaLoc(corpo);
+    salvarUltimoOperador(corpo.operador);
+
+    el("posicaoTexto").textContent = posicaoStr;
+    let sub = "Atualizado em " + formatarDataHora(corpo.atualizado_em);
+    if (corpo.operador) sub += "\nOperador: " + corpo.operador;
+    el("atualizadoTexto").textContent = sub;
+    el("blocoResultado").classList.add("visivel");
+    el("bannerNaoEncontrado").classList.remove("visivel");
+
+    // Mostra botoes de editar/deletar apos cadastro
+    el("btnEditarSku").style.display = "block";
+    el("btnDeletar").style.display   = "block";
+    modoCadastro = false;
+
+    await carregarPainelSetores();
+    el("skuBusca").value = "";
+    el("skuBusca").focus();
+
+  } catch(e) {
+    setMsg("msgSalvar", "Erro ao salvar: " + e.message, "erro");
+  } finally {
+    el("btnSalvar").disabled = false;
+  }
+}
+
+// ===== PAINEL VISAO GERAL (LAYOUT PRATELEIRAS v2) =====
+
+let painelDados = [];
+let painelExpandidoTudo = false;
+let drawerAberto = null;   // { el, wrap, caixaNome, cel, ladoKey }
+let painelZoom = 1.0;
+const skusSelecionadosPainel = new Set();
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.1;
+
+// Niveis de ocupacao: mapeamento
+const NIVEL_INFO = {
+  vazio:  { label: "Vazia",       cls: "nivel-vazio" },
+  pouca:  { label: "Pouca",       cls: "nivel-pouca" },
+  media:  { label: "Media",       cls: "nivel-media" },
+  quase:  { label: "Quase cheia", cls: "nivel-quase" }
+};
+
+function parseSortKey(v) { return parseInt(String(v).replace(/\D/g,'')) || 0; }
+function sortLados(arr)  { return [...arr].sort((a,b) => (a || " ").localeCompare(b || " ")); }
+function labelLado(lado) { return lado ? lado : "SEM LETRA"; }
+
+// Mapa: setor -> prat -> caixaNome -> lado -> [rows]
+function montarEstruturaPainel(rows) {
+  const mapa = {};
+  Object.keys(estruturaCache || {}).forEach(setorNum => {
+    const setor = setorNum + "S";
+    if (!mapa[setor]) mapa[setor] = {};
+    Object.keys(estruturaCache[setorNum] || {}).forEach(pratNum => {
+      const prat = "P" + pratNum;
+      if (!mapa[setor][prat]) mapa[setor][prat] = {};
+      const qtdCaixas = obterQtdCaixas(estruturaCache[setorNum], pratNum);
+      for (let i = 1; i <= qtdCaixas; i++) {
+        const caixa = "C" + i;
+        if (!mapa[setor][prat][caixa]) mapa[setor][prat][caixa] = {};
+      }
+    });
+  });
+  rows.forEach(row => {
+    const setor = row.setor || "(sem setor)";
+    const prat  = row.prateleira || "P0";
+    const caixa = row.caixa || "C?";
+    const lado  = (row.lado || "").trim().toUpperCase();
+    if (!mapa[setor]) mapa[setor] = {};
+    if (!mapa[setor][prat]) mapa[setor][prat] = {};
+    if (!mapa[setor][prat][caixa]) mapa[setor][prat][caixa] = {};
+    if (!mapa[setor][prat][caixa][lado]) mapa[setor][prat][caixa][lado] = [];
+    mapa[setor][prat][caixa][lado].push(row);
+  });
+  return mapa;
+}
+
+function caixasEstrutura(setorRaw, pratRaw) {
+  const s = String(setorRaw).replace(/\D/g,'');
+  const p = String(pratRaw).replace(/\D/g,'');
+  const v = estruturaCache[s]?.[p];
+  if (!v) return 0;
+  return typeof v === "object" ? (v.caixas || 0) : v;
+}
+
+// Nível dominante de uma caixa/lado (o mais alto dentre os SKUs)
+function nivelDominante(items) {
+  const ord = ["quase","media","pouca","vazio"];
+  for (const n of ord) {
+    if (items.some(r => (r.nivel || "pouca") === n)) return n;
+  }
+  return "vazio";
+}
+
+// Cor do nível para a barra lateral do setor
+function pctSetorDeNiveis(ladosMap) {
+  // Conta lados e retorna classe baseada no nível dominante geral
+  let quase = 0, media = 0, pouca = 0, total = 0;
+  Object.values(ladosMap).forEach(ladoItems => {
+    const n = nivelDominante(ladoItems);
+    if (n === "quase") quase++;
+    else if (n === "media") media++;
+    else if (n === "pouca") pouca++;
+    total++;
+  });
+  if (total === 0) return { pct: 0, cls: "" };
+  if (quase / total > 0.4) return { pct: 85, cls: "cheio" };
+  if ((quase + media) / total > 0.5) return { pct: 60, cls: "quase" };
+  if (pouca / total > 0.3) return { pct: 30, cls: "" };
+  return { pct: 5, cls: "" };
+}
+
+async function carregarPainelSetores() {
+  const wrap = document.getElementById("painelZoomWrap");
+  if (wrap) wrap.innerHTML = '<p style="color:var(--cinza2);font-size:15px;">Carregando...</p>';
+
+  try {
+    const dados = await apiListarTudo();
+    painelDados = dados;
+    dadosCache = dados;
+    salvarBackupLocal(dados);
+    setStatus("online", `Online — ${dados.length} SKU(s)`);
+    renderPainel(dados, false);
+    registrarSnapshotAuditoria(dados);
+  } catch(e) {
+    const raw = localStorage.getItem("estoque_backup_json");
+    if (raw) {
+      try {
+        const backup = JSON.parse(raw);
+        if (wrap) wrap.innerHTML = `
+          <div style="background:#1a0d00;border:2px solid #7a3d00;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;font-weight:700;color:#e0a030;">
+            SEM CONEXAO. Exibindo backup local de ${formatarDataHora(backup.gerado_em)}.
+          </div>`;
+        painelDados = backup.registros || [];
+        setStatus("offline", "Offline — backup local");
+        renderPainel(painelDados, true);
+        return;
+      } catch(e2) {}
+    }
+    if (wrap) wrap.innerHTML = `<p style="color:#ff8888;font-size:15px;font-weight:700;">Erro: ${e.message}</p>`;
+    setStatus("offline", "Sem conexao");
+  }
+}
+
+function renderPainel(rows, append) {
+  const wrap = document.getElementById("painelZoomWrap");
+  if (!wrap) return;
+  if (!append) wrap.innerHTML = "";
+  drawerAberto = null;
+
+  const filtroSku = (el("painelFiltroSku")?.value || "").trim().toUpperCase();
+  const rowsFiltrados = rows;
+
+  const mapa = montarEstruturaPainel(rowsFiltrados);
+
+  const totalSkus    = rowsFiltrados.length;
+  const totalSetores = Object.keys(mapa).length;
+  const statsEl = el("dirStats");
+  if (statsEl) statsEl.textContent = `${totalSkus} SKUs · ${totalSetores} setor(es)`;
+
+  if (totalSetores === 0) {
+    wrap.innerHTML += `<div class="painel-vazio"><div class="painel-vazio-icon">📦</div>Nenhum SKU cadastrado ainda.</div>`;
+    return;
+  }
+
+  Object.keys(mapa).sort((a,b) => parseSortKey(a) - parseSortKey(b)).forEach(setor => {
+      const pratObj = mapa[setor];
+      const pratOrdenadas = Object.keys(pratObj).sort((a,b) => parseSortKey(a) - parseSortKey(b));
+
+      let skusSetor = 0;
+      let ladosTotais = 0;
+      pratOrdenadas.forEach(p =>
+        Object.values(pratObj[p]).forEach(caixaLados => {
+          Object.values(caixaLados).forEach(arr => { skusSetor += arr.length; ladosTotais++; });
+        })
+      );
+
+      // Barra de ocupação do setor: baseada em nível médio
+      let setorPct = 0, setorPctCls = "";
+      if (ladosTotais > 0) {
+        let somaNivel = 0;
+        pratOrdenadas.forEach(p =>
+          Object.values(pratObj[p]).forEach(caixaLados =>
+            Object.values(caixaLados).forEach(arr => {
+              const n = nivelDominante(arr);
+              somaNivel += n === "quase" ? 3 : n === "media" ? 2 : n === "pouca" ? 1 : 0;
+            })
+          )
+        );
+        const media = somaNivel / ladosTotais;
+        setorPct = Math.round((media / 3) * 100);
+        setorPctCls = media >= 2.5 ? "cheio" : media >= 1.5 ? "quase" : "";
+      }
+
+      let caixasSetor = 0;
+      pratOrdenadas.forEach(p => caixasSetor += Object.keys(pratObj[p]).length);
+
+      const setorKey = setor;
+      const blocoDiv = document.createElement("div");
+      blocoDiv.className = "setor-bloco" + (painelExpandidoTudo ? " expandido" : "");
+      blocoDiv.dataset.setorKey = setorKey;
+      const setorVisual = estiloSetor(setorKey);
+      blocoDiv.style.setProperty("--setor-cor", setorVisual.cor);
+      blocoDiv.style.setProperty("--setor-fundo", setorVisual.fundo);
+
+      blocoDiv.innerHTML = `
+        <div class="setor-cabecalho" onclick="toggleSetor(this.closest('.setor-bloco'))">
+          <div class="setor-cab-esq">
+            <span class="setor-chevron">▶</span>
+            <span class="setor-label">SETOR ${setor}</span>
+          </div>
+          <div class="setor-cab-dir">
+            <span class="setor-stat">${pratOrdenadas.length} prat. · ${caixasSetor} cx</span>
+            <span class="setor-badge">${skusSetor} SKU(s)</span>
+          </div>
+        </div>
+        <div class="setor-ocp-bar"><div class="setor-ocp-fill ${setorPctCls}" style="width:${setorPct}%"></div></div>
+        <div class="setor-corpo"></div>
+      `;
+
+      const corpo = blocoDiv.querySelector(".setor-corpo");
+
+      pratOrdenadas.forEach(pratKey => {
+        const caixasObj = pratObj[pratKey];
+        const pratNum = parseSortKey(pratKey);
+
+        const caixasBanco = Object.keys(caixasObj).sort((a,b) => parseSortKey(a) - parseSortKey(b));
+        const qtdEstrutura = caixasEstrutura(setor, pratKey);
+        const maxCxNum = Math.max(
+          qtdEstrutura,
+          caixasBanco.length > 0 ? parseSortKey(caixasBanco[caixasBanco.length - 1]) : 0
+        );
+        const todasCaixas = [];
+        for (let i = 1; i <= maxCxNum; i++) todasCaixas.push("C" + i);
+        if (todasCaixas.length === 0) caixasBanco.forEach(c => todasCaixas.push(c));
+
+        let skusPrat = 0;
+        caixasBanco.forEach(c => Object.values(caixasObj[c]).forEach(arr => skusPrat += arr.length));
+
+        const pratRow = document.createElement("div");
+        pratRow.className = "prat-row";
+
+        const pratLabel = document.createElement("div");
+        pratLabel.className = "prat-label-col";
+        pratLabel.innerHTML = `
+          <span class="prat-label-num">P${pratNum}</span>
+          <span class="prat-label-sub">Prat.</span>
+          <span class="prat-label-cnt">${skusPrat} SKU</span>
+        `;
+
+        const caixasWrap = document.createElement("div");
+        caixasWrap.className = "prat-caixas-wrap";
+
+        const drawerWrap = document.createElement("div");
+        drawerWrap.className = "prat-drawer-wrap";
+        const drawer = document.createElement("div");
+        drawer.className = "caixa-drawer";
+        drawerWrap.appendChild(drawer);
+
+        todasCaixas.forEach(caixaNome => {
+          const ladosObj = caixasObj[caixaNome] || {};   // { A:[...], B:[...] }
+          const ladosPresentes = sortLados(Object.keys(ladosObj));
+          const totalSkusCaixa = ladosPresentes.reduce((s,l) => s + ladosObj[l].length, 0);
+          const vazia = totalSkusCaixa === 0;
+          const simples = ladosPresentes.length <= 1; // só A ou nenhum
+
+          // match filtro
+          let temMatch = false;
+          if (filtroSku) {
+            temMatch = ladosPresentes.some(l =>
+              ladosObj[l].some(r => r.sku && r.sku.toUpperCase().includes(filtroSku))
+            );
+          }
+
+          const cel = document.createElement("div");
+          let celClass = "caixa-cel";
+          if (vazia)    celClass += " vazia";
+          if (simples)  celClass += " simples";
+          if (temMatch) celClass += " filtro-match";
+          cel.className = celClass;
+          cel.dataset.andar = ANDAR_PADRAO;
+          cel.dataset.setor = setor;
+          cel.dataset.prateleira = pratKey;
+          cel.dataset.caixa = caixaNome;
+
+          // Determinar nível dominante da caixa inteira (todos lados)
+          let nivelCaixa = "vazio";
+          if (!vazia) {
+            const todosItems = ladosPresentes.flatMap(l => ladosObj[l] || []);
+            nivelCaixa = nivelDominante(todosItems);
+          }
+          cel.dataset.nivel = nivelCaixa;
+          cel.classList.add(`ocup-${nivelCaixa}`);
+
+          // Cor do nome da caixa baseada na ocupação
+          const corNomeCls = nivelCaixa === "quase" ? "cor-quase"
+                           : nivelCaixa === "media"  ? "cor-media"
+                           : nivelCaixa === "pouca"  ? "cor-pouca"
+                           : "cor-vazio";
+
+          // Topo: nome da caixa
+          const topo = document.createElement("div");
+          topo.className = "caixa-cel-topo";
+          const caixaRotulo = `${setor}-${pratKey}${caixaNome}`;
+          topo.innerHTML = `<span class="caixa-cel-nome ${corNomeCls}">${caixaRotulo}</span>`;
+
+          // Área de lados
+          const ladosDiv = document.createElement("div");
+          ladosDiv.className = "caixa-lados";
+
+          if (vazia) {
+            // Caixa sem dados: mostra faixa única vazia
+            const faixa = document.createElement("div");
+            faixa.className = "lado-faixa";
+            faixa.innerHTML = `
+              <span class="lado-nivel-bar nivel-vazio"></span>
+              <span class="lado-nivel-txt">—</span>
+            `;
+            ladosDiv.appendChild(faixa);
+          } else if (simples) {
+            // Só lado A: faixa simples com barra de nível grande
+            const ladoReal = ladosPresentes[0] || "";
+            const items = ladosObj[ladoReal] || [];
+            const nivel = nivelDominante(items);
+            const nInfo = NIVEL_INFO[nivel] || NIVEL_INFO.vazio;
+            const faixa = document.createElement("div");
+            faixa.className = "lado-faixa";
+            faixa.innerHTML = `
+              <span class="lado-nivel-bar ${nInfo.cls}"></span>
+              <span class="lado-nivel-txt">${items.length} SKU</span>
+            `;
+            ladosDiv.appendChild(faixa);
+          } else {
+            // Múltiplos lados: faixas empilhadas A em cima
+            ladosPresentes.forEach(lado => {
+              const items = ladosObj[lado] || [];
+              const nivel = nivelDominante(items);
+              const nInfo = NIVEL_INFO[nivel] || NIVEL_INFO.vazio;
+              const faixa = document.createElement("div");
+              faixa.className = "lado-faixa";
+              faixa.innerHTML = `
+                <span class="lado-letra">${labelLado(lado)}</span>
+                <span class="lado-nivel-bar ${nInfo.cls}"></span>
+                <span class="lado-nivel-txt">${items.length}</span>
+              `;
+              ladosDiv.appendChild(faixa);
+            });
+          }
+
+          cel.appendChild(topo);
+          cel.appendChild(ladosDiv);
+
+          cel.addEventListener("click", ev => {
+            ev.stopPropagation();
+            abrirDrawerCaixa(cel, drawer, drawerWrap, caixaNome, pratKey, pratNum, ANDAR_PADRAO, setor, ladosObj, ladosPresentes);
+          });
+
+          caixasWrap.appendChild(cel);
+        });
+
+        pratRow.appendChild(pratLabel);
+        pratRow.appendChild(caixasWrap);
+
+        const pratContainer = document.createElement("div");
+        pratContainer.style.cssText = "margin-bottom:3px;";
+        pratContainer.appendChild(pratRow);
+        pratContainer.appendChild(drawerWrap);
+        corpo.appendChild(pratContainer);
+      });
+
+      wrap.appendChild(blocoDiv);
+
+      // Auto-expand se tem match filtro
+      if (filtroSku) {
+        const temMatchNoSetor = rowsFiltrados.some(r =>
+          r.setor === setor &&
+          r.sku && r.sku.toUpperCase().includes(filtroSku)
+        );
+        if (temMatchNoSetor) blocoDiv.classList.add("expandido");
+      }
+  });
+
+  // Re-aplicar filtros de nível e match-sku após renderizar
+  aplicarFiltroNivelVisual();
+  if (filtroMatchSkuAtivo) {
+    const wrapMain = document.getElementById("painelZoomWrap");
+    if (wrapMain) wrapMain.classList.add("painel-match-sku-ativo");
+  }
+}
+
+function montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPresentes, modoEdit) {
+  const posBase = `${setor}-${pratKey}${caixaNome}`;
+  const totalSkusCaixa = ladosPresentes.reduce((s,l) => s + (ladosObj[l] || []).length, 0);
+
+  let secoesHtml = "";
+  if (ladosPresentes.length === 0) {
+    secoesHtml = `<div class="drawer-vazia">Caixa vazia &mdash; nenhum SKU cadastrado.</div>`;
+  } else {
+    secoesHtml = ladosPresentes.map(lado => {
+      const items = (ladosObj[lado] || []).slice().sort((a,b) => a.sku.localeCompare(b.sku));
+      const nivel = nivelDominante(items);
+      const nInfo = NIVEL_INFO[nivel] || NIVEL_INFO.vazio;
+
+      const skusHtml = items.length === 0
+        ? `<div class="drawer-vazia">Lado ${labelLado(lado)} vazio.</div>`
+        : items.map(row => {
+            let meta = "";
+            if (row.atualizado_em) meta += formatarDataHora(row.atualizado_em);
+            if (row.operador) meta += (meta ? " · " : "") + row.operador;
+            if (row.sincronizado_erp_em && !row.erro_erp) meta += (meta ? " · " : "") + "✓ ERP";
+            if (row.erro_erp) meta += (meta ? " · " : "") + "⚠ ERP";
+            const skuEsc = escapeHtmlAttr(row.sku);
+            const selecionado = skusSelecionadosPainel.has(row.sku);
+            return `<div class="drawer-sku-row ${selecionado ? "selecionado" : ""}"
+              data-sku="${skuEsc}"
+              onclick="buscarSkuPainel(this.dataset.sku)">
+              <input class="drawer-sku-check" type="checkbox" ${selecionado ? "checked" : ""}
+                onclick="event.stopPropagation(); toggleSkuSelecionado(this.closest('.drawer-sku-row').dataset.sku, this.checked)">
+              <span class="drawer-sku-cod">${skuEsc}</span>
+              <span class="drawer-sku-name" title="Consultando nome no Tiny">...</span>
+              <span class="drawer-sku-stock" title="Estoque disponivel"><small>UN:</small> <strong>—</strong></span>
+              <span class="drawer-sku-sales" title="Vendas faturadas"><small>VENDAS:</small> <strong>—</strong></span>
+              <span class="drawer-sku-meta" title="${escapeHtmlAttr(meta)}">${escapeHtmlAttr(meta)}</span>
+            </div>`;
+          }).join("");
+
+      return `
+        <div class="drawer-lado-secao">
+          <div class="drawer-lado-header">
+            <span class="drawer-lado-letra">LADO ${labelLado(lado)}</span>
+            <span class="drawer-lado-nivel ${nInfo.cls}">${nInfo.label}</span>
+            <span style="font-size:10px;color:var(--cinza3);margin-left:auto;">${items.length} SKU(s)</span>
+          </div>
+          <div class="drawer-skus">${skusHtml}</div>
+        </div>`;
+    }).join("");
+  }
+
+  let editHtml = "";
+  if (modoEdit) {
+    if (ladosPresentes.length === 0) {
+      editHtml = `<div style="font-size:11px;color:var(--cinza3);margin-top:8px;padding:8px;border:1px dashed var(--cinza4);border-radius:6px;">Caixa vazia &mdash; cadastre SKUs para definir ocupacao.</div>`;
+    } else {
+      const safeId = posBase.replace(/[^a-z0-9]/gi, '_');
+      const ladasRows = ladosPresentes.map(lado => {
+        const items = ladosObj[lado] || [];
+        const nivelAtual = nivelDominante(items);
+        return `<div class="drawer-edit-lado-row">
+          <span class="drawer-edit-lado-tag">Lado ${labelLado(lado)}</span>
+          <select class="drawer-edit-select opt-sel-${nivelAtual}"
+                  data-lado="${lado}"
+                  data-setor="${setor}" data-prat="${pratKey}" data-caixa="${caixaNome}"
+                  onchange="this.className='drawer-edit-select opt-sel-'+this.value">
+            <option value="pouca" ${nivelAtual==='pouca'?'selected':''}>Pouca</option>
+            <option value="media" ${nivelAtual==='media'?'selected':''}>Media</option>
+            <option value="quase" ${nivelAtual==='quase'?'selected':''}>Quase cheia</option>
+            <option value="vazio" ${nivelAtual==='vazio'?'selected':''}>Vazia</option>
+          </select>
+        </div>`;
+      }).join("");
+
+      editHtml = `<div class="drawer-edit-bar">
+        <span class="drawer-edit-label">Editar ocupacao</span>
+        ${ladasRows}
+        <div style="display:flex;gap:6px;width:100%;margin-top:4px;align-items:center;">
+          <button class="drawer-edit-btn" onclick="salvarOcupacaoCaixa(this)">Salvar</button>
+          <span class="drawer-edit-msg" id="drawerEditMsg_${safeId}"></span>
+        </div>
+      </div>`;
+    }
+  }
+
+  const editBadge = modoEdit
+    ? `<span class="drawer-badge drawer-edit-hint ativo" onclick="toggleDrawerEdit()" title="Fechar editor">✏ Editando — clique para fechar</span>`
+    : `<span class="drawer-badge drawer-edit-hint" onclick="toggleDrawerEdit()" title="Editar ocupação desta caixa">✏ Editar ocupação</span>`;
+
+  return `
+    <div class="drawer-cabecalho">
+      <span class="drawer-titulo">${posBase}</span>
+      <div class="drawer-badges">
+        <span class="drawer-badge">${totalSkusCaixa} SKU(s) total</span>
+        ${editBadge}
+      </div>
+      <div class="drawer-insights-toolbar">
+        <span class="box-insights-meta"></span>
+        <span class="box-insights-status" role="status">Lendo cache local...</span>
+        <span class="box-insights-error"></span>
+        <button class="btn-header insight-refresh" title="Atualizar resumo de vendas">Atualizar</button>
+      </div>
+    </div>
+    ${secoesHtml}
+    ${editHtml}
+  `;
+}
+
+async function salvarOcupacaoCaixa(btn) {
+  const bar = btn.closest(".drawer-edit-bar");
+  const selects = bar.querySelectorAll(".drawer-edit-select");
+  const msgEl = bar.querySelector(".drawer-edit-msg");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
+  msgEl.className = "drawer-edit-msg";
+  msgEl.textContent = "";
+
+  try {
+    for (const sel of selects) {
+      const { setor, prat, caixa, lado } = sel.dataset;
+      const novoNivel = sel.value;
+      const params = new URLSearchParams({
+        setor: `eq.${setor}`,
+        prateleira: `eq.${prat}`,
+        caixa: `eq.${caixa}`,
+        lado: `eq.${lado}`
+      });
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/${TABELA}?${params}`,
+        {
+          method: "PATCH",
+          headers: { ...headers, "Prefer": "return=minimal" },
+          body: JSON.stringify({ nivel: novoNivel })
+        }
+      );
+      if (!r.ok) throw new Error(await r.text() || r.statusText);
+    }
+
+    msgEl.textContent = "Salvo!";
+    msgEl.className = "drawer-edit-msg ok";
+    btn.textContent = "Salvo";
+
+    setTimeout(() => carregarPainelSetores(), 700);
+  } catch(e) {
+    msgEl.textContent = "Erro: " + e.message;
+    msgEl.className = "drawer-edit-msg erro";
+    btn.disabled = false;
+    btn.textContent = "Salvar";
+  }
+}
+
+// Chamada pelo badge "✏ Editar ocupação" dentro do drawer
+function toggleDrawerEdit() {
+  if (!drawerAberto) return;
+  const { el: drawer, caixaNome, _andar, _setor, _pratKey, _ladosObj, _ladosPresentes } = drawerAberto;
+  const insightsToolbar = drawer.querySelector('.drawer-insights-toolbar');
+  drawerAberto.modoEdit = !drawerAberto.modoEdit;
+  drawer.innerHTML = montarHtmlDrawer(
+    caixaNome,
+    drawerAberto._andar, drawerAberto._setor, drawerAberto._pratKey,
+    drawerAberto._ladosObj, drawerAberto._ladosPresentes,
+    drawerAberto.modoEdit
+  );
+  if (insightsToolbar) drawer.querySelector('.drawer-insights-toolbar').replaceWith(insightsToolbar);
+  if (drawer._insightData) renderInsightsLinhas(drawer, drawer._insightData);
+}
+
+function abrirDrawerCaixa(cel, drawer, drawerWrap, caixaNome, pratKey, pratNum, andar, setor, ladosObj, ladosPresentes) {
+  const mesmaChave = drawerAberto && drawerAberto.el === drawer && drawerAberto.caixaNome === caixaNome;
+
+  if (mesmaChave) {
+    // 2º clique na mesma caixa: fecha o drawer (comportamento original)
+    drawerWrap.classList.remove("aberto");
+    cel.classList.remove("expandida");
+    drawerAberto = null;
+    return;
+  }
+
+  if (drawerAberto) {
+    drawerAberto.wrap.classList.remove("aberto");
+    if (drawerAberto.cel) drawerAberto.cel.classList.remove("expandida");
+  }
+
+  cel.classList.add("expandida");
+  drawer.innerHTML = montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPresentes, false);
+  drawerWrap.classList.add("aberto");
+  drawerAberto = {
+    el: drawer, wrap: drawerWrap, caixaNome, cel, modoEdit: false,
+    _andar: andar, _setor: setor, _pratKey: pratKey,
+    _ladosObj: ladosObj, _ladosPresentes: ladosPresentes
+  };
+  abrirInsightsCaixa(drawer, `${setor}-${pratKey}${caixaNome}`,
+    Object.values(ladosObj).flat().map(r => r.sku), true);
+}
+
+function buscarSkuPainel(sku) {
+  el("skuBusca").value = sku;
+  buscarSku();
+  el("colunaEsq").scrollTop = 0;
+}
+
+function toggleSkuSelecionado(sku, marcado) {
+  if (!sku) return;
+  if (marcado) skusSelecionadosPainel.add(sku);
+  else skusSelecionadosPainel.delete(sku);
+  document.querySelectorAll(".drawer-sku-row").forEach(row => {
+    if (row.dataset.sku === sku) row.classList.toggle("selecionado", marcado);
+  });
+}
+
+// ===== ARRASTAR APOS SEGURAR 2s =====
+const LONG_PRESS_MS = 1200;
+let dragEstado = null;
+let dragClickBloqueado = false;
+
+function criarFantasmaDrag(tipo, texto, x, y) {
+  const ghost = document.createElement("div");
+  ghost.className = "drag-fantasma " + (tipo === "sku" ? "sku" : "caixa");
+  ghost.textContent = texto;
+  document.body.appendChild(ghost);
+  moverFantasmaDrag(ghost, x, y);
+  return ghost;
+}
+
+function moverFantasmaDrag(ghost, x, y) {
+  if (!ghost) return;
+  ghost.style.left = x + "px";
+  ghost.style.top = y + "px";
+}
+
+function caixaSobPonto(x, y) {
+  const elPonto = document.elementFromPoint(x, y);
+  return elPonto ? elPonto.closest(".caixa-cel") : null;
+}
+
+function limparDragVisual() {
+  document.querySelectorAll(".drag-armado, .drag-origem, .drop-alvo").forEach(node => {
+    node.classList.remove("drag-armado", "drag-origem", "drop-alvo");
+  });
+  if (dragEstado?.ghost) dragEstado.ghost.remove();
+}
+
+function finalizarDragEstado() {
+  if (dragEstado?.timer) clearTimeout(dragEstado.timer);
+  try {
+    if (dragEstado?.origemEl && dragEstado?.pointerId != null) {
+      dragEstado.origemEl.releasePointerCapture(dragEstado.pointerId);
+    }
+  } catch(e) {}
+  limparDragVisual();
+  dragEstado = null;
+}
+
+function iniciarDragArmado() {
+  if (!dragEstado || dragEstado.ativo) return;
+  dragEstado.ativo = true;
+  dragClickBloqueado = true;
+  dragEstado.origemEl.classList.remove("drag-armado");
+  dragEstado.origemEl.classList.add("drag-origem");
+  const label = dragEstado.tipo === "caixa"
+    ? `${dragEstado.origem.caixa} (${rowsNaCaixa(dragEstado.origem).length})`
+    : (skusSelecionadosPainel.has(dragEstado.sku) && skusSelecionadosPainel.size > 1
+      ? `${skusSelecionadosPainel.size} SKUs`
+      : dragEstado.sku);
+  dragEstado.ghost = criarFantasmaDrag(dragEstado.tipo, label, dragEstado.x, dragEstado.y);
+}
+
+function iniciarLongPressDrag(tipo, origemEl, dados, ev) {
+  if (ev.button != null && ev.button !== 0) return;
+  if (ev.target.closest("button,input,select,textarea,a")) return;
+
+  finalizarDragEstado();
+  try { origemEl.setPointerCapture(ev.pointerId); } catch(e) {}
+  dragEstado = {
+    tipo,
+    origemEl,
+    pointerId: ev.pointerId,
+    inicioX: ev.clientX,
+    inicioY: ev.clientY,
+    x: ev.clientX,
+    y: ev.clientY,
+    ativo: false,
+    alvoEl: null,
+    ...dados
+  };
+  origemEl.classList.add("drag-armado");
+  dragEstado.timer = setTimeout(iniciarDragArmado, LONG_PRESS_MS);
+}
+
+function moverLongPressDrag(ev) {
+  if (!dragEstado) return;
+  if (dragEstado.pointerId != null && ev.pointerId !== dragEstado.pointerId) return;
+  dragEstado.x = ev.clientX;
+  dragEstado.y = ev.clientY;
+
+  if (!dragEstado.ativo) return;
+
+  ev.preventDefault();
+  moverFantasmaDrag(dragEstado.ghost, ev.clientX, ev.clientY);
+  const alvo = caixaSobPonto(ev.clientX, ev.clientY);
+  if (dragEstado.alvoEl && dragEstado.alvoEl !== alvo) {
+    dragEstado.alvoEl.classList.remove("drop-alvo");
+  }
+  dragEstado.alvoEl = alvo;
+  if (alvo && alvo !== dragEstado.origemEl) alvo.classList.add("drop-alvo");
+}
+
+function cancelarLongPressDrag() {
+  if (!dragEstado || dragEstado.ativo) return;
+  finalizarDragEstado();
+}
+
+function soltarLongPressDrag(ev) {
+  if (!dragEstado) return;
+  if (dragEstado.pointerId != null && ev.pointerId !== dragEstado.pointerId) return;
+  const estado = dragEstado;
+  const estavaAtivo = estado.ativo;
+  const alvo = estado.alvoEl || (estavaAtivo ? caixaSobPonto(ev.clientX, ev.clientY) : null);
+  finalizarDragEstado();
+
+  if (!estavaAtivo) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  setTimeout(() => { dragClickBloqueado = false; }, 300);
+
+  if (!alvo || alvo === estado.origemEl) return;
+  const destino = posicaoCaixaDeDataset(alvo.dataset);
+  if (estado.tipo === "caixa") {
+    if (mesmaCaixa(estado.origem, destino)) return;
+    abrirModalMoverCaixa(estado.origem, destino);
+  } else if (estado.tipo === "sku") {
+    soltarSkuEmCaixa(estado.sku, destino);
+  }
+}
+
+document.addEventListener("pointerdown", ev => {
+  const skuRow = ev.target.closest(".drawer-sku-row");
+  if (skuRow?.dataset?.sku) {
+    iniciarLongPressDrag("sku", skuRow, { sku: skuRow.dataset.sku }, ev);
+    return;
+  }
+  const caixa = ev.target.closest(".caixa-cel");
+  if (caixa?.dataset?.caixa) {
+    iniciarLongPressDrag("caixa", caixa, { origem: posicaoCaixaDeDataset(caixa.dataset) }, ev);
+  }
+}, true);
+
+document.addEventListener("pointermove", moverLongPressDrag, { passive: false, capture: true });
+document.addEventListener("pointerup", soltarLongPressDrag, true);
+document.addEventListener("pointercancel", finalizarDragEstado, true);
+document.addEventListener("scroll", cancelarLongPressDrag, true);
+document.addEventListener("click", ev => {
+  if (!dragClickBloqueado) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  dragClickBloqueado = false;
+}, true);
+
+function toggleSetor(blocoDiv) {
+  blocoDiv.classList.toggle("expandido");
+  if (drawerAberto) {
+    drawerAberto.wrap.classList.remove("aberto");
+    if (drawerAberto.cel) drawerAberto.cel.classList.remove("expandida");
+    drawerAberto = null;
+  }
+}
+
+function toggleExpandirTudo() {
+  painelExpandidoTudo = !painelExpandidoTudo;
+  document.querySelectorAll(".setor-bloco").forEach(b =>
+    b.classList.toggle("expandido", painelExpandidoTudo)
+  );
+  const btn = el("btnExpandirTudo");
+  if (btn) btn.textContent = painelExpandidoTudo ? "Recolher tudo" : "Expandir tudo";
+}
+
+// ===== ZOOM VIA SCROLL NO PAINEL =====
+function aplicarZoom() {
+  const wrap = document.getElementById("painelZoomWrap");
+  if (!wrap) return;
+  wrap.style.transform = `scale(${painelZoom})`;
+  wrap.style.width = `${(1 / painelZoom) * 100}%`;
+  // Ajusta height do wrap para que o scroll container saiba o tamanho real
+  const painelEl = document.getElementById("painelSetores");
+  if (painelEl) {
+    const rect = wrap.getBoundingClientRect();
+    // deixa o scroll funcionar: o height do wrap em px reais
+    wrap.style.height = "";
+    // forçar reflow do scroll
+    painelEl.scrollTop = painelEl.scrollTop;
+  }
+
+  const hint = el("zoomHint");
+  if (hint) {
+    hint.textContent = `${Math.round(painelZoom * 100)}%`;
+    hint.classList.add("zoom-pulse");
+    setTimeout(() => hint.classList.remove("zoom-pulse"), 300);
+  }
+}
+
+function ajustarZoom(delta) {
+  painelZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((painelZoom + delta) * 10) / 10));
+  aplicarZoom();
+}
+
+// ===== SELECT OCUPAÇÃO — cor dinâmica =====
+function atualizarCorSelectNivel() {
+  const sel = document.getElementById("nivelInput");
+  if (!sel) return;
+  sel.className = "select-nivel opt-sel-" + sel.value;
+}
+
+// ===== FILTRO DE NÍVEL NA LEGENDA =====
+let filtroNivelAtivo = null;
+let filtroMatchSkuAtivo = false;
+
+function toggleFiltroNivel(nivel) {
+  const era = filtroNivelAtivo === nivel;
+  filtroNivelAtivo = era ? null : nivel;
+
+  // Atualiza visual dos botões da legenda
+  document.querySelectorAll(".leg-filtro[data-nivel]").forEach(el => {
+    el.classList.toggle("ativo", el.dataset.nivel === filtroNivelAtivo);
+  });
+
+  aplicarFiltroNivelVisual();
+}
+
+function toggleFiltroMatchSku() {
+  filtroMatchSkuAtivo = !filtroMatchSkuAtivo;
+  const btn = document.getElementById("legMatchSku");
+  if (btn) btn.classList.toggle("ativo", filtroMatchSkuAtivo);
+
+  const wrap = document.getElementById("painelZoomWrap");
+  if (wrap) wrap.classList.toggle("painel-match-sku-ativo", filtroMatchSkuAtivo);
+}
+
+function aplicarFiltroNivelVisual() {
+  if (!filtroNivelAtivo) {
+    // Sem filtro: mostra tudo normal
+    document.querySelectorAll(".caixa-cel").forEach(cel => {
+      cel.classList.remove("nivel-dim", "nivel-highlight");
+    });
+    return;
+  }
+
+  document.querySelectorAll(".caixa-cel").forEach(cel => {
+    const nivelCel = cel.dataset.nivel || "vazio";
+    if (nivelCel === filtroNivelAtivo) {
+      cel.classList.remove("nivel-dim");
+      cel.classList.add("nivel-highlight");
+    } else {
+      cel.classList.add("nivel-dim");
+      cel.classList.remove("nivel-highlight");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Filtros
+  const inp = el("painelFiltroSku");
+  let filterFrame;
+  if (inp) inp.addEventListener("input", () => {
+    cancelAnimationFrame(filterFrame);
+    filterFrame = requestAnimationFrame(() => {
+      if (painelDados.length) renderPainel(painelDados, false);
+    });
+  });
+
+  // Cor do select nivel
+  const nivelSel = el("nivelInput");
+  if (nivelSel) {
+    atualizarCorSelectNivel();
+    nivelSel.addEventListener("change", atualizarCorSelectNivel);
+  }
+
+  // Zoom via scroll — ativo apenas quando o mouse está SOBRE o painelZoomWrap (área das caixas)
+  // Fora das caixas scroll normal da lista funciona sem precisar de Ctrl
+  const painelEl = el("painelSetores");
+
+  if (painelEl) {
+    painelEl.addEventListener("wheel", (e) => {
+      if (e.target.closest(".caixa-cel")) {
+        e.preventDefault();
+        e.stopPropagation();
+        const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+        ajustarZoom(delta);
+      }
+    }, { passive: false });
+  }
+
+  const zoomMenos = el("btnZoomMenos");
+  const zoomMais = el("btnZoomMais");
+  if (zoomMenos) zoomMenos.addEventListener("click", () => ajustarZoom(-ZOOM_STEP));
+  if (zoomMais) zoomMais.addEventListener("click", () => ajustarZoom(ZOOM_STEP));
+});
+
+// O campo de nível precisa ser salvo junto com a posição
+// Injeta no corpo de salvarPosicao via hook no objeto corpo
+const _salvarPosicaoOriginal_nivel = typeof salvarPosicao !== "undefined" ? null : null;
+
+// LEGADO
+function criarBlocoSetor(setor, caixasObj) { return document.createElement("div"); }
+function criarBlocoCaixa(caixa, info)      { return document.createElement("div"); }
+
+// ===== BUSCA POR POSICAO =====
+function atualizarBpSetores() {
+  const sel = el("bpSetor");
+  const valorAtual = sel.value;
+  sel.innerHTML = "";
+  const setores = Object.keys(estruturaCache || {}).map(Number).sort((a,b)=>a-b);
+  setores.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = n + "S";
+    opt.textContent = n + "S";
+    sel.appendChild(opt);
+  });
+  if (setores.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Nenhum setor";
+    sel.appendChild(opt);
+  }
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) sel.value = valorAtual;
+  atualizarBpPrateleiras();
+}
+
+function atualizarBpPrateleiras() {
+  const setorVal = el("bpSetor").value;
+  const setorNum = setorVal ? setorVal.replace("S", "") : "";
+  const sel = el("bpPrateleira");
+  const valorAtual = sel.value;
+  sel.innerHTML = "";
+  const mapaSetor = setorNum ? estruturaCache[setorNum] : null;
+  const prateleiras = mapaSetor ? Object.keys(mapaSetor).map(Number).sort((a,b)=>a-b) : [];
+  prateleiras.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = "P" + n;
+    opt.textContent = "P" + n;
+    sel.appendChild(opt);
+  });
+  if (prateleiras.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Sem prateleiras";
+    sel.appendChild(opt);
+  }
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) sel.value = valorAtual;
+  atualizarBpCaixas();
+}
+
+function atualizarBpCaixas() {
+  const setorVal = el("bpSetor").value;
+  const setorNum = setorVal ? setorVal.replace("S", "") : "";
+  const pratVal = el("bpPrateleira").value;
+  const pratNum = pratVal ? pratVal.replace("P", "") : "";
+  const sel = el("bpCaixa");
+  const valorAtual = sel.value;
+  sel.innerHTML = "";
+  const qtd = (setorNum && pratNum && estruturaCache[setorNum])
+    ? obterQtdCaixas(estruturaCache[setorNum], pratNum) : 0;
+  for (let i = 1; i <= qtd; i++) {
+    const opt = document.createElement("option");
+    opt.value = "C" + i;
+    opt.textContent = "C" + i;
+    sel.appendChild(opt);
+  }
+  if (qtd === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Sem caixas";
+    sel.appendChild(opt);
+  }
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) sel.value = valorAtual;
+}
+
+async function buscarPorPosicao() {
+  limparMsg("msgBuscaPosicao");
+  const corpo = {
+    andar: ANDAR_PADRAO,
+    setor: el("bpSetor").value,
+    prateleira: el("bpPrateleira").value,
+    caixa: el("bpCaixa").value,
+    lado: el("bpLado").value
+  };
+  if (!corpo.setor || !corpo.prateleira || !corpo.caixa) {
+    setMsg("msgBuscaPosicao", "Selecione setor, prateleira e caixa.", "erro");
+    return;
+  }
+  const pos = montarPosicao(corpo);
+  el("resultadoBuscaPosicao").innerHTML = "Buscando...";
+  try {
+    const itens = await apiBuscarPorPosicao(corpo, "");
+    const setorNum = corpo.setor.replace("S", "");
+    const pratNum = corpo.prateleira.replace("P", "");
+    const cap = obterCapacidadeCaixa(corpo.andar, setorNum, pratNum);
+    if (!itens.length) {
+      el("resultadoBuscaPosicao").innerHTML = `<span style="color:var(--cinza2);">Nenhum SKU em <strong>${pos}</strong> (cap. ${cap})</span>`;
+      return;
+    }
+    el("resultadoBuscaPosicao").innerHTML =
+      `<div style="margin-bottom:6px;"><strong>${pos}</strong> — ${itens.length}/${cap} SKU(s)</div>` +
+      itens.map(r =>
+        `<div style="padding:6px 0;border-bottom:1px solid var(--preto4);cursor:pointer;color:var(--roxo-claro);font-weight:700;" data-sku="${r.sku}" class="sku-pos-click">${r.sku}</div>`
+      ).join("");
+    el("resultadoBuscaPosicao").querySelectorAll(".sku-pos-click").forEach(node => {
+      node.addEventListener("click", () => {
+        el("skuBusca").value = node.dataset.sku;
+        buscarSku();
+      });
+    });
+  } catch(e) {
+    setMsg("msgBuscaPosicao", e.message, "erro");
+    el("resultadoBuscaPosicao").innerHTML = "";
+  }
+}
+
+function rotuloAcaoAuditoria(acao) {
+  const mapa = {
+    cadastro: "Cadastrado",
+    alteracao: "Posicao alterada",
+    exclusao: "Excluido",
+    renomeacao: "SKU renomeado",
+    movimentacao: "Movimentado",
+    tiny_sincronizado: "Enviado ao Tiny",
+    tiny_ja_igual: "Tiny ja estava igual",
+    tiny_erro: "Erro no Tiny",
+    ausencia_detectada: "Ausencia detectada",
+    estado_atual: "Ultima posicao salva"
+  };
+  return mapa[acao] || String(acao || "Evento").replaceAll("_", " ");
+}
+
+async function apiAtividadeEstoqueRecente(sku = "", limite = 200) {
+  const r = await fetch(
+    erpUrl(`/audit-current?sku=${encodeURIComponent(sku)}&limit=${limite}`),
+    { cache: "no-store" }
+  );
+  const corpo = await r.json().catch(() => ({}));
+  if (!r.ok || !corpo.ok) throw new Error(corpo.erro || "Falha ao consultar atividade atual do estoque");
+  const linhas = corpo.itens || [];
+  return linhas.map(linha => ({
+    sku: linha.sku,
+    operador: linha.operador || "nao informado",
+    posicao_anterior: "",
+    posicao_nova: montarPosicao(linha),
+    acao: "estado_atual",
+    criado_em: linha.atualizado_em,
+    origem: "Supabase atual"
+  }));
+}
+
+async function apiHistoricoAuditoria(sku = "", limite = 200) {
+  const filtros = ["select=*", "order=criado_em.desc", `limit=${limite}`];
+  if (sku) filtros.push(`sku=eq.${encodeURIComponent(sku)}`);
+  const localUrl = erpUrl(`/audit-events?sku=${encodeURIComponent(sku)}&limit=${limite}`);
+  const [remotoR, localR, estoqueR] = await Promise.allSettled([
+    fetch(`${SUPABASE_URL}/rest/v1/${TABELA_HISTORICO}?${filtros.join("&")}`, { headers }),
+    fetch(localUrl, { cache: "no-store" }),
+    apiAtividadeEstoqueRecente(sku, limite)
+  ]);
+  let eventos = [];
+  if (remotoR.status === "fulfilled" && remotoR.value.ok) eventos.push(...await remotoR.value.json());
+  if (localR.status === "fulfilled" && localR.value.ok) {
+    const corpo = await localR.value.json();
+    eventos.push(...(corpo.eventos || []));
+  }
+  if (estoqueR.status === "fulfilled") eventos.push(...estoqueR.value);
+  const vistos = new Set();
+  return eventos
+    .sort((a, b) => new Date(b.criado_em || 0) - new Date(a.criado_em || 0))
+    .filter(e => {
+      const chave = [e.sku, e.acao, e.posicao_anterior, e.posicao_nova, e.operador, e.criado_em].join("|");
+      if (vistos.has(chave)) return false;
+      vistos.add(chave);
+      return true;
+    })
+    .slice(0, limite);
+}
+
+async function consultarTinyAuditoria(sku) {
+  const r = await fetch(erpUrl("/consultar?sku=" + encodeURIComponent(sku)), { cache: "no-store" });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.erro) throw new Error(data.erro || "Tiny indisponivel");
+  return data;
+}
+
+function renderTimelineAuditoria(linhas) {
+  el("auditCount").textContent = `${linhas.length} evento(s)`;
+  if (!linhas.length) {
+    el("auditTimeline").innerHTML = `<div class="audit-empty">Nenhum evento registrado para esta pesquisa.</div>`;
+    return;
+  }
+  el("auditTimeline").innerHTML = linhas.map(h => {
+    const anterior = h.posicao_anterior || "";
+    const nova = h.posicao_nova || "";
+    const detalhe = anterior && nova ? `${anterior} &rarr; ${nova}` : (nova || (anterior ? `${anterior} &rarr; removido` : "Sem detalhe de posicao"));
+    return `<div class="audit-event">
+      <div><strong class="hist-sku" data-sku="${escapeHtmlAttr(h.sku)}" style="cursor:pointer;">${escapeHtmlAttr(h.sku)}</strong></div>
+      <div class="action">${escapeHtmlAttr(rotuloAcaoAuditoria(h.acao))}</div>
+      <div class="detail">${detalhe}</div>
+      <div><div class="when">${formatarDataHora(h.criado_em)}</div><div class="who">${escapeHtmlAttr(h.operador || "Sistema")}${h.origem ? ` · ${escapeHtmlAttr(h.origem)}` : ""}</div></div>
+    </div>`;
+  }).join("");
+  el("auditTimeline").querySelectorAll(".hist-sku").forEach(node => node.addEventListener("click", () => {
+    el("auditSku").value = node.dataset.sku;
+    investigarSkuAuditoria();
+  }));
+}
+
+function diagnosticoAuditoria(sku, estoque, tiny, eventos, erroTiny) {
+  const noEstoque = !!estoque;
+  const noTiny = !!tiny?.encontrado;
+  const exclusao = eventos.find(e => e.acao === "exclusao");
+  const ausencia = eventos.find(e => e.acao === "ausencia_detectada");
+  const ultimo = eventos[0];
+  if (erroTiny) return `O Coordenadas foi consultado, mas o Tiny nao respondeu: ${erroTiny}. O historico abaixo continua valido.`;
+  if (!noEstoque && noTiny && exclusao) return `${sku} foi excluido do Coordenadas em ${formatarDataHora(exclusao.criado_em)} por ${exclusao.operador || "operador nao informado"}, mas ainda existe no Tiny. O Tiny nao e apagado quando o SKU e removido do mapa.`;
+  if (!noEstoque && noTiny && ausencia) return `${sku} desapareceu do Coordenadas entre duas leituras do estoque. A ausencia foi detectada em ${formatarDataHora(ausencia.criado_em)}, mas nao houve exclusao pela interface. Ele ainda existe no Tiny.`;
+  if (!noEstoque && noTiny) return `${sku} ainda existe no Tiny, mas esta ausente no Coordenadas. Nao existe evento de exclusao nesta linha do tempo; ele pode ter sido removido fora desta interface ou antes da auditoria ser instalada.`;
+  if (!noEstoque && !noTiny && exclusao) return `${sku} possui exclusao registrada no Coordenadas e tambem nao foi localizado no Tiny.`;
+  if (!noEstoque && !noTiny) return `${sku} nao foi localizado em nenhum dos dois sistemas. ${ultimo ? "Ha eventos antigos abaixo para reconstruir o que aconteceu." : "Nao ha historico suficiente para afirmar quando ou por quem ele foi removido."}`;
+  if (noEstoque && !noTiny) return `${sku} esta cadastrado no Coordenadas em ${montarPosicao(estoque)}, mas nao foi encontrado no Tiny. Verifique o codigo do produto ou uma falha de sincronizacao.`;
+  const posEstoque = montarPosicao(estoque);
+  const posTiny = String(tiny.localizacao || "").trim();
+  if (posEstoque !== posTiny) return `${sku} existe nos dois sistemas, mas as posicoes divergem: Coordenadas ${posEstoque || "sem posicao"}; Tiny ${posTiny || "sem posicao"}.`;
+  return `${sku} esta consistente nos dois sistemas na posicao ${posEstoque || "sem posicao"}.`;
+}
+
+async function investigarSkuAuditoria() {
+  const sku = el("auditSku").value.trim().toUpperCase();
+  if (!sku) return carregarAuditoriaRecente();
+  el("auditSku").value = sku;
+  el("auditSummary").innerHTML = `<div class="audit-empty">Consultando Coordenadas, Tiny e historico...</div>`;
+  el("auditTimeline").innerHTML = "";
+  const [estoqueR, tinyR, historicoR] = await Promise.allSettled([
+    apiBuscarPorSku(sku),
+    consultarTinyAuditoria(sku),
+    apiHistoricoAuditoria(sku, 300)
+  ]);
+  const estoque = estoqueR.status === "fulfilled" ? (estoqueR.value[0] || null) : null;
+  const tiny = tinyR.status === "fulfilled" ? tinyR.value : null;
+  const eventos = historicoR.status === "fulfilled" ? historicoR.value : [];
+  const erroTiny = tinyR.status === "rejected" ? tinyR.reason.message : "";
+  const posEstoque = estoque ? montarPosicao(estoque) : "Ausente";
+  const posTiny = tiny?.encontrado ? (tiny.localizacao || "Sem localizacao") : (erroTiny ? "Indisponivel" : "Ausente");
+  const sync = estoque?.erro_erp ? `Erro: ${estoque.erro_erp}` : (estoque?.sincronizado_erp_em ? `OK em ${formatarDataHora(estoque.sincronizado_erp_em)}` : "Sem confirmacao");
+  el("auditSummary").innerHTML = `
+    <div class="audit-status-grid">
+      <div class="audit-status"><small>Coordenadas / Supabase</small><strong>${escapeHtmlAttr(posEstoque)}</strong><p>${estoque ? `Atualizado ${formatarDataHora(estoque.atualizado_em)} por ${escapeHtmlAttr(estoque.operador || "nao informado")}` : "SKU nao consta no estoque atual"}</p></div>
+      <div class="audit-status"><small>Tiny ERP</small><strong>${escapeHtmlAttr(posTiny)}</strong><p>${tiny?.encontrado ? escapeHtmlAttr(tiny.descricao || "Produto encontrado") : escapeHtmlAttr(erroTiny || "Produto nao encontrado")}</p></div>
+      <div class="audit-status"><small>Ultima sincronizacao</small><strong>${escapeHtmlAttr(sync)}</strong><p>${eventos.length ? `${eventos.length} evento(s) preservado(s)` : "Nenhum evento encontrado"}</p></div>
+    </div>
+    <div class="audit-diagnosis"><strong>Diagnostico:</strong> ${escapeHtmlAttr(diagnosticoAuditoria(sku, estoque, tiny, eventos, erroTiny))}</div>`;
+  el("auditTimelineTitle").textContent = `Linha do tempo de ${sku}`;
+  renderTimelineAuditoria(eventos);
+}
+
+async function carregarAuditoriaRecente() {
+  el("auditSummary").innerHTML = "";
+  el("auditTimelineTitle").textContent = "Eventos recentes";
+  el("auditTimeline").innerHTML = `<div class="audit-empty">Carregando eventos...</div>`;
+  try {
+    renderTimelineAuditoria(await apiHistoricoAuditoria("", 200));
+  } catch (e) {
+    let local = [];
+    try { local = JSON.parse(localStorage.getItem("estoque_historico") || "[]"); } catch (_) {}
+    renderTimelineAuditoria(local.slice(0, 200));
+    if (!local.length) el("auditTimeline").innerHTML = `<div class="audit-empty">${escapeHtmlAttr(e.message)}. Execute a migracao do historico no Supabase.</div>`;
+  }
+}
+
+function abrirAuditoria() {
+  el("headerMenu").removeAttribute("open");
+  el("auditPanel").classList.add("visivel");
+  el("auditSku").focus();
+  carregarAuditoriaRecente();
+}
+
+function fecharAuditoria() {
+  el("auditPanel").classList.remove("visivel");
+}
+
+async function abrirModalHistorico() {
+  el("modalBox").classList.add("wide");
+  el("modalTitulo").textContent = "Historico de movimentacoes";
+  el("modalAviso").textContent = "Ultimos registros — clique no SKU para buscar:";
+  el("modalConteudo").innerHTML = "<p style='color:var(--cinza2);'>Carregando...</p>";
+  el("modalBtns").innerHTML = `<button class="btn-modal-cancel" onclick="fecharModal()">Fechar</button>`;
+  el("modalOverlay").classList.add("visivel");
+  let linhas = [];
+  try {
+    linhas = await apiHistoricoAuditoria("", 80);
+  } catch(e) {}
+  if (!linhas.length) {
+    try { linhas = JSON.parse(localStorage.getItem("estoque_historico") || "[]").slice(0, 80); } catch(e2) {}
+  }
+  if (!linhas.length) {
+    el("modalConteudo").innerHTML = "<p>Nenhum historico ainda. Execute supabase_migracao.sql se acabou de instalar.</p>";
+    return;
+  }
+  el("modalConteudo").innerHTML = `<div style="max-height:360px;overflow-y:auto;">` +
+    linhas.map(h => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--preto4);font-size:13px;line-height:1.5;">
+        <strong style="cursor:pointer;color:var(--roxo-claro);" data-sku="${h.sku}" class="hist-sku">${h.sku}</strong>
+        <span style="color:var(--cinza3);"> · ${escapeHtmlAttr(rotuloAcaoAuditoria(h.acao))}</span><br>
+        ${h.posicao_anterior ? h.posicao_anterior + " &rarr; " : ""}<strong>${h.posicao_nova || "(removido)"}</strong>
+        <span style="color:var(--cinza3);"> · ${formatarDataHora(h.criado_em)}${h.operador ? " · " + h.operador : ""}${h.origem ? " · " + h.origem : ""}</span>
+      </div>
+    `).join("") + `</div>`;
+  el("modalConteudo").querySelectorAll(".hist-sku").forEach(node => {
+    node.addEventListener("click", () => {
+      fecharModal();
+      el("skuBusca").value = node.dataset.sku;
+      buscarSku();
+    });
+  });
+}
+
+// ===== MAPA DE CALOR =====
+let heatmapDados = [];
+let heatmapVendas = new Map();
+const mapaVendasAtivo = () => el('heatmapMetrica').value === 'vendas';
+
+function numeroInsights(value) {
+  return value == null ? 'Indisponivel' : Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+}
+
+function renderInsightsTabela(data) {
+  if (!data.itens.length) return '<div class="box-insights-empty">Caixa vazia.</div>';
+  const parcial = !data.historico_completo;
+  return `<div class="box-insights-scroll">${data.itens.map(p => {
+      const history = (p.historico || []).map(h => `<div>${escapeHtmlAttr(h.data ? formatarDataHora(h.data) : 'Sem data')} · NF ${escapeHtmlAttr(h.nota || h.nota_id)} · ${numeroInsights(h.quantidade)} un. · ${Number(h.valor).toLocaleString('pt-BR', {style:'currency',currency:'BRL'})}</div>`).join('');
+      const zero = p.erro_vendas || (p.vendas == null ? 'Sem resumo compartilhado para este SKU.' : 'Resumo calculado a partir das saidas com valor positivo.');
+      const nome = escapeHtmlAttr(p.nome || p.sku);
+      return `<details class="box-insights-item"><summary>
+        <strong class="box-insights-sku">${escapeHtmlAttr(p.sku)}</strong>
+        <span class="box-insights-name" title="${nome}">${nome}</span>
+        <strong class="box-insights-metric ${p.disponivel === 0 ? 'zero-stock' : ''}" title="Estoque disponivel"><span>UN:</span>${p.disponivel == null ? '—' : numeroInsights(p.disponivel)}</strong>
+        <strong class="box-insights-metric" title="${escapeHtmlAttr(p.erro_vendas || 'Saidas com valor positivo; resumo compartilhado por SKU')}"><span>VENDAS:</span>${p.vendas == null ? '—' : p.vendas}</strong>
+        </summary><div class="box-insights-history">
+          <div>${nome}</div>
+          <div>${numeroInsights(p.unidades_vendidas)} unidades em saidas com valor positivo</div>
+          <div>${p.inicio && p.fim ? `${escapeHtmlAttr(p.inicio)} a ${escapeHtmlAttr(p.fim)}` : 'Periodo ainda nao consultado'}</div>
+          <div>${p.vendas_atualizado_em ? `Resumo atualizado ${formatarDataHora(p.vendas_atualizado_em)}` : ''}</div>
+          <div>${p.atualizado_em ? `Estoque atualizado ${formatarDataHora(p.atualizado_em)}` : 'Estoque ainda nao consultado'}</div>
+          ${history || escapeHtmlAttr(zero)}</div></details>`;
+    }).join('')}</div>`;
+}
+
+function renderInsightsLinhas(host, data) {
+  const produtos = new Map(data.itens.map(p => [String(p.sku).toUpperCase(), p]));
+  host.querySelectorAll('.drawer-sku-row').forEach(row => {
+    const p = produtos.get(row.dataset.sku.toUpperCase());
+    if (!p) return;
+    const nome = row.querySelector('.drawer-sku-name');
+    nome.textContent = p.nome || p.sku;
+    nome.title = p.nome || p.sku;
+    const estoque = row.querySelector('.drawer-sku-stock');
+    estoque.querySelector('strong').textContent = p.disponivel == null ? '—' : numeroInsights(p.disponivel);
+    estoque.classList.toggle('zero-stock', p.disponivel === 0);
+    const vendas = row.querySelector('.drawer-sku-sales');
+    vendas.querySelector('strong').textContent = p.vendas == null ? '—' : (p.historico_completo ? '' : '≥') + p.vendas;
+    vendas.title = p.erro_vendas || `Saidas com valor positivo; ${numeroInsights(p.unidades_vendidas)} unidades. ${p.vendas_atualizado_em ? 'Resumo atualizado '+formatarDataHora(p.vendas_atualizado_em) : 'Sem resumo compartilhado'}`;
+  });
+}
+
+async function abrirInsightsCaixa(host, posicao, skus, inline = false) {
+  skus = [...new Set(skus.filter(Boolean))];
+  const token = {};
+  host._insightToken = token;
+  const atual = () => host.isConnected && host._insightToken === token && host.querySelector(inline ? '.drawer-insights-toolbar' : '.box-insights');
+  if (inline) host._insightData = null;
+  else host.innerHTML = `<section class="box-insights" aria-label="Produtos da caixa ${escapeHtmlAttr(posicao)}">
+    <div class="box-insights-head"><h3>${escapeHtmlAttr(posicao)}</h3>
+      <span class="box-insights-meta"></span>
+      <button class="btn-header insight-refresh" title="Atualizar resumo de vendas">Atualizar</button></div>
+    <div class="box-insights-status" role="status">Lendo cache local...</div>
+    <div class="box-insights-error"></div><div class="box-insights-content"></div></section>`;
+  const status = host.querySelector('.box-insights-status');
+  const error = host.querySelector('.box-insights-error');
+  const content = host.querySelector('.box-insights-content');
+  const buttons = (inline ? host.querySelector('.drawer-insights-toolbar') : host).querySelectorAll('button');
+  const show = data => {
+    if (!atual()) return;
+    if (inline) {
+      host._insightData = data;
+      renderInsightsLinhas(host, data);
+    } else content.innerHTML = renderInsightsTabela(data);
+    const meta = host.querySelector('.box-insights-meta');
+    meta.textContent = 'Vendas · resumo compartilhado';
+    meta.title = 'Saidas de estoque com valor positivo; resumo por SKU publicado no Supabase.';
+    if (data.erro_compartilhado) error.textContent = data.erro_compartilhado;
+  };
+  const api = async acao => {
+    const r = await fetch(erpUrl('/box-insights'), {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({skus, acao})});
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.erro || 'Falha ao consultar caixa');
+    return data;
+  };
+  const consultar = async acao => {
+    if (!atual()) return;
+    error.textContent = '';
+    buttons.forEach(b => b.disabled = true);
+    status.textContent = 'Consultando Tiny...';
+    try {
+      let data = await api(acao);
+      if (!data.job_id) { show(data); status.textContent = ''; return; }
+      while (atual()) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const r = await fetch(erpUrl('/box-insights-job?id=' + encodeURIComponent(data.job_id)), {cache:'no-store'});
+        const job = await r.json();
+        if (!r.ok || !job.ok) throw new Error(job.erro || 'Consulta nao localizada');
+        if (!atual()) return;
+        status.textContent = job.mensagem;
+        if (job.status === 'concluido') {
+          show(job.dados);
+          error.textContent = (job.erros || []).join(' | ');
+          status.textContent = '';
+          break;
+        }
+      }
+    } catch(e) {
+      if (atual()) { error.textContent = e.message; status.textContent = 'Dados locais preservados.'; }
+    } finally {
+      if (atual()) buttons.forEach(b => b.disabled = false);
+    }
+  };
+  host.querySelector('.insight-refresh').onclick = () => consultar('atualizar');
+  host.dataset.insightHost = 'true';
+  host._refreshInvoiceCache = async () => {
+    const data = await api('cache');
+    if (atual()) show(data);
+  };
+  try {
+    const data = await api('cache');
+    if (!atual()) return;
+    show(data);
+    status.textContent = '';
+  } catch(e) { if (atual()) error.textContent = e.message; }
+}
+
+function abrirMapaCalor() {
+  el("headerMenu").removeAttribute("open");
+  window.open(`${location.origin}/?view=heatmap`, "hl_coordenadas_heatmap", "width=1440,height=900,resizable=yes,scrollbars=yes");
+}
+
+function caixasParaHeatmap(rows) {
+  const mapa = montarEstruturaPainel(rows);
+  const caixas = [];
+  Object.keys(mapa).sort((a,b) => parseSortKey(a) - parseSortKey(b)).forEach(setor => {
+    Object.keys(mapa[setor]).sort((a,b) => parseSortKey(a) - parseSortKey(b)).forEach(prateleira => {
+      Object.keys(mapa[setor][prateleira]).sort((a,b) => parseSortKey(a) - parseSortKey(b)).forEach(caixa => {
+        const lados = mapa[setor][prateleira][caixa];
+        const itens = Object.values(lados).flat();
+        caixas.push({
+          setor,
+          prateleira,
+          caixa,
+          posicao: `${setor}-${prateleira}${caixa}`,
+          quantidade: itens.length,
+          vendas: [...new Set(itens.map(r => String(r.sku).toUpperCase()))].reduce((n,sku) => n + (heatmapVendas.get(sku)?.vendas || 0), 0),
+          conhecidas: [...new Set(itens.map(r => String(r.sku).toUpperCase()))].filter(sku => heatmapVendas.has(sku)).length,
+          completa: itens.length > 0 && itens.every(r => heatmapVendas.has(String(r.sku).toUpperCase()))
+        });
+      });
+    });
+  });
+  return caixas;
+}
+
+function rankingHeatmap(linhas, nome, valor, unidade = 'SKU(s)') {
+  return linhas.map((item, indice) => `
+    <div class="heatmap-rank-row">
+      <span class="rank">${indice + 1}</span>
+      <span class="name">${escapeHtmlAttr(nome(item))}</span>
+      <span class="value">${numeroInsights(valor(item))} ${unidade}</span>
+    </div>`).join("") || `<div class="heatmap-empty">Sem dados.</div>`;
+}
+
+function renderMapaCaixasHeatmap(caixas, filtroSetor) {
+  const alvo = el("heatmapMapa");
+  const filtradas = filtroSetor ? caixas.filter(c => c.setor === filtroSetor) : caixas;
+  if (!filtradas.length) {
+    alvo.innerHTML = `<div class="heatmap-empty">Nenhuma caixa encontrada para este setor.</div>`;
+    return;
+  }
+  const vendas = mapaVendasAtivo();
+  const valor = c => vendas ? c.vendas : c.quantidade;
+  const maximo = Math.max(1, ...caixas.map(valor));
+  const temaClaro = document.documentElement.dataset.theme === "light";
+  const grupos = {};
+  filtradas.forEach(c => {
+    if (!grupos[c.setor]) grupos[c.setor] = [];
+    grupos[c.setor].push(c);
+  });
+  alvo.innerHTML = Object.keys(grupos).sort((a,b) => parseSortKey(a) - parseSortKey(b)).map(setor => {
+    const lista = grupos[setor];
+    const total = lista.reduce((s,c) => s + valor(c), 0);
+    const setorVisual = estiloSetor(setor);
+    const celulas = lista.map(c => {
+      if (!c.quantidade) {
+        return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:var(--cinza4);--heat-bg:var(--preto3);"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>0</b><span>Vazia</span></div>`;
+      }
+      if (vendas && !c.conhecidas) {
+        return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:var(--cinza4);--heat-bg:var(--preto3);"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>—</b><span>Sem resumo</span></div>`;
+      }
+      const proporcao = valor(c) / maximo;
+      const hue = Math.round(120 * (1 - proporcao));
+      const borda = `hsl(${hue} 78% ${temaClaro ? 38 : 52}%)`;
+      const fundo = `hsl(${hue} 72% 45% / ${temaClaro ? ".15" : ".18"})`;
+      return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:${borda};--heat-bg:${fundo};" title="${c.quantidade} SKU(s)"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>${vendas && !c.completa ? '≥' : ''}${numeroInsights(valor(c))}</b><span>${vendas ? (c.completa ? 'vendas' : `${c.conhecidas}/${c.quantidade} SKUs · parcial`) : 'SKU(s)'}</span></div>`;
+    }).join("");
+    return `<section class="heatmap-sector" style="--setor-cor:${setorVisual.cor};">
+      <div class="heatmap-sector-title"><strong>SETOR ${escapeHtmlAttr(setor)}</strong><span>${numeroInsights(total)} ${vendas ? 'vendas' : 'SKU(s)'} em ${lista.length} caixa(s)</span></div>
+      <div class="heatmap-grid">${celulas}</div>
+      <div class="box-insights-host"></div>
+    </section>`;
+  }).join("");
+  alvo.querySelectorAll('.heatmap-cell').forEach(cell => {
+    const abrir = () => {
+      const host = cell.closest('.heatmap-sector').querySelector('.box-insights-host');
+      const wasOpen = cell.getAttribute('aria-expanded') === 'true';
+      alvo.querySelectorAll('.heatmap-cell').forEach(c => c.setAttribute('aria-expanded', 'false'));
+      alvo.querySelectorAll('.box-insights-host').forEach(h => h.replaceChildren());
+      if (wasOpen) return;
+      cell.setAttribute('aria-expanded', 'true');
+      const box = filtradas.find(c => c.posicao === cell.dataset.posicao);
+      const skus = heatmapDados.filter(r => r.setor === box.setor && r.prateleira === box.prateleira && r.caixa === box.caixa).map(r => r.sku);
+      abrirInsightsCaixa(host, box.posicao, skus);
+    };
+    cell.addEventListener('click', abrir);
+    cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
+  });
+}
+
+function renderHeatmap(rows) {
+  heatmapDados = rows;
+  const caixas = caixasParaHeatmap(rows);
+  const vendas = mapaVendasAtivo();
+  const valor = c => vendas ? c.vendas : c.quantidade;
+  const unidade = vendas ? 'vendas' : 'SKU(s)';
+  el('heatmapView').querySelector('h1').textContent = vendas ? 'Mapa de calor de vendas' : 'Mapa de calor do estoque';
+  el('heatmapView').querySelector('.heatmap-head p').textContent = vendas ? 'Saidas com valor positivo dos SKUs atuais de cada caixa' : 'Distribuicao de SKUs por setor, prateleira e caixa';
+  document.title = vendas ? 'Mapa de vendas - HL Coordenadas' : 'Mapa de calor - HL Coordenadas';
+  el('heatmapSetoresTitulo').textContent = vendas ? 'Setores com mais vendas' : 'Setores com mais SKUs';
+  el('heatmapMaisTitulo').textContent = vendas ? 'Caixas mais vendidas' : 'Caixas com mais SKUs';
+  el('heatmapMenosTitulo').textContent = vendas ? 'Caixas menos vendidas' : 'Caixas com menos SKUs';
+  const setoresMap = new Map();
+  caixas.forEach(c => setoresMap.set(c.setor, (setoresMap.get(c.setor) || 0) + valor(c)));
+  const setores = [...setoresMap.entries()].map(([setor, quantidade]) => ({ setor, quantidade }))
+    .sort((a,b) => b.quantidade - a.quantidade || parseSortKey(a.setor) - parseSortKey(b.setor));
+  const elegiveis = vendas ? caixas.filter(c => c.completa) : caixas;
+  const ocupadas = elegiveis.filter(c => c.quantidade > 0);
+  const mais = [...ocupadas].sort((a,b) => valor(b) - valor(a) || a.posicao.localeCompare(b.posicao)).slice(0, 10);
+  const menos = [...elegiveis].sort((a,b) => valor(a) - valor(b) || a.posicao.localeCompare(b.posicao)).slice(0, 10);
+  const media = caixas.length ? rows.length / caixas.length : 0;
+  const topSetor = setores[0] || { setor: "-", quantidade: 0 };
+  el("heatmapStats").innerHTML = `
+    <div class="heatmap-stat"><span>Total de SKUs</span><strong>${rows.length}</strong></div>
+    <div class="heatmap-stat"><span>Setores</span><strong>${setores.length}</strong></div>
+    <div class="heatmap-stat"><span>Caixas mapeadas</span><strong>${caixas.length}</strong></div>
+    <div class="heatmap-stat"><span>Media por caixa</span><strong>${media.toFixed(1)}</strong></div>
+    <div class="heatmap-stat"><span>Setor com mais SKUs</span><strong>${escapeHtmlAttr(topSetor.setor)} · ${topSetor.quantidade}</strong></div>`;
+  if (vendas) {
+    const unicos = [...new Set(rows.map(r => String(r.sku).toUpperCase()))];
+    const known = unicos.filter(s => heatmapVendas.has(s));
+    const total = known.reduce((n,s) => n + heatmapVendas.get(s).vendas, 0);
+    el('heatmapStats').innerHTML = `<div class="heatmap-stat"><span>Vendas dos SKUs atuais</span><strong>${numeroInsights(total)}</strong></div><div class="heatmap-stat"><span>SKUs com resumo</span><strong>${known.length}/${unicos.length}</strong></div><div class="heatmap-stat"><span>Caixas completas</span><strong>${elegiveis.length}/${caixas.length}</strong></div><div class="heatmap-stat"><span>Mais vendida</span><strong>${escapeHtmlAttr(mais[0]?.posicao || '—')}</strong></div><div class="heatmap-stat"><span>Menos vendida</span><strong>${escapeHtmlAttr(menos[0]?.posicao || '—')}</strong></div>`;
+    el('salesMapStatus').textContent = `${known.length}/${unicos.length} SKUs com resumo. Ranking: caixas com todos os SKUs consultados. Soma das saidas por SKU; nao e contagem de pedidos unicos.`;
+  } else el('salesMapStatus').textContent = '';
+  el("heatmapSetores").innerHTML = rankingHeatmap(setores.slice(0, 10), i => `Setor ${i.setor}`, i => i.quantidade, unidade);
+  el("heatmapMais").innerHTML = rankingHeatmap(mais, i => i.posicao, valor, unidade);
+  el("heatmapMenos").innerHTML = rankingHeatmap(menos, i => i.posicao, valor, unidade);
+
+  const filtro = el("heatmapFiltroSetor");
+  const selecionado = filtro.value;
+  filtro.innerHTML = `<option value="">Todos os setores</option>` + setores
+    .slice().sort((a,b) => parseSortKey(a.setor) - parseSortKey(b.setor))
+    .map(i => `<option value="${escapeHtmlAttr(i.setor)}">Setor ${escapeHtmlAttr(i.setor)} (${i.quantidade})</option>`).join("");
+  if ([...filtro.options].some(o => o.value === selecionado)) filtro.value = selecionado;
+  renderMapaCaixasHeatmap(caixas, filtro.value);
+}
+
+async function carregarHeatmap() {
+  el("heatmapMapa").innerHTML = `<div class="heatmap-empty">Lendo estoque compartilhado...</div>`;
+  el("btnAtualizarHeatmap").disabled = true;
+  try {
+    const rows = await apiListarTudo();
+    if (mapaVendasAtivo()) {
+      const response = await fetch(erpUrl('/sales-summary'),{cache:'no-store'});
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.erro || 'Falha ao ler resumo de vendas');
+      heatmapVendas = new Map(data.itens.map(r => [String(r.sku).toUpperCase(),r]));
+    }
+    renderHeatmap(rows);
+  } catch (e) {
+    el("heatmapMapa").innerHTML = `<div class="heatmap-empty">Falha ao carregar: ${escapeHtmlAttr(e.message)}</div>`;
+  } finally {
+    el("btnAtualizarHeatmap").disabled = false;
+  }
+}
+
+// ===== INIT =====
+const MODO_HEATMAP = ['heatmap','sales'].includes(new URLSearchParams(location.search).get("view"));
+el('heatmapMetrica').value = new URLSearchParams(location.search).get('view') === 'sales' ? 'vendas' : 'ocupacao';
+el('heatmapMetrica').addEventListener('change', carregarHeatmap);
+if (MODO_HEATMAP) {
+  document.body.classList.add("heatmap-mode");
+  document.title = "Mapa de calor - HL Coordenadas";
+}
+el("btnBuscar").addEventListener("click", buscarSku);
+el("skuBusca").addEventListener("keydown", e => { if (e.key === "Enter") buscarSku(); });
+el("btnMostrarCadastro").addEventListener("click", mostrarCadastro);
+el("btnSalvar").addEventListener("click", salvarPosicao);
+el("btnBackupHeader").addEventListener("click", baixarBackupJSON);
+el("btnEditarSku").addEventListener("click", abrirModalEditarSku);
+el("btnDeletar").addEventListener("click", abrirModalDeletar);
+el("btnEstrutura").addEventListener("click", abrirModalEstrutura);
+el("btnHistorico").addEventListener("click", abrirModalHistorico);
+el("btnAuditoria").addEventListener("click", abrirAuditoria);
+el("btnFecharAuditoria").addEventListener("click", fecharAuditoria);
+el("btnBuscarAuditoria").addEventListener("click", investigarSkuAuditoria);
+el("auditSku").addEventListener("keydown", e => { if (e.key === "Enter") investigarSkuAuditoria(); });
+el("btnTema").addEventListener("click", alternarTema);
+el("btnTemaHeatmap").addEventListener("click", alternarTema);
+el("btnAtualizarHeatmap").addEventListener("click", carregarHeatmap);
+el("btnFecharHeatmap").addEventListener("click", () => window.close());
+el("heatmapFiltroSetor").addEventListener("change", () => renderMapaCaixasHeatmap(caixasParaHeatmap(heatmapDados), el("heatmapFiltroSetor").value));
+let importPollTimer = null;
+let importRequestPending = false;
+let importLastProgress = '';
+function renderImportacao(data) {
+  const percentage = data.total ? (data.atual || 0) / data.total * 100 : 0;
+  el('invoiceImportProgress').value = percentage;
+  el('invoiceImportCount').textContent = `${numeroInsights(data.atual || 0)} / ${data.total == null ? '—' : numeroInsights(data.total)} SKUs · ${numeroInsights(percentage)}%`;
+  el('invoiceImportStatus').textContent = (data.erros || []).slice(-3).join(' | ') || data.mensagem || (data.publicador ? 'Pronto para consultar os logs e publicar o resumo' : 'Somente leitura. Configure vendas_publicador.json no PC autorizado.');
+  el('btnIniciarImportacao').hidden = data.ativo;
+  el('btnPausarImportacao').hidden = !data.ativo;
+  el('btnPausarImportacao').disabled = data.status === 'pausando' || importRequestPending;
+  el('btnIniciarImportacao').disabled = importRequestPending || !data.publicador;
+  el('btnIniciarImportacao').textContent = 'Consultar logs e publicar';
+  const progressKey = `${data.atual}:${data.status}`;
+  if (progressKey !== importLastProgress) {
+    importLastProgress = progressKey;
+    document.querySelectorAll('[data-insight-host]').forEach(host => {
+      host._refreshInvoiceCache?.().catch(() => {});
+    });
+  }
+}
+async function consultarImportacao(acao) {
+  clearTimeout(importPollTimer);
+  const dialog = el('invoiceImportDialog');
+  if (importRequestPending) return;
+  importRequestPending = true;
+  el('btnIniciarImportacao').disabled = true;
+  el('btnPausarImportacao').disabled = true;
+  try {
+    const response = await fetch(erpUrl('/sales-sync'), acao ? {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({acao})
+    } : {cache:'no-store'});
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.erro || 'Falha ao consultar importacao');
+    importRequestPending = false;
+    renderImportacao(data);
+  } catch (error) {
+    el('invoiceImportStatus').textContent = error.message;
+  } finally {
+    importRequestPending = false;
+    if (dialog.open) importPollTimer = setTimeout(() => consultarImportacao(), 2500);
+  }
+}
+function abrirImportacao() {
+  el('headerMenu').open = false;
+  if (!el('invoiceImportDialog').open) el('invoiceImportDialog').showModal();
+  consultarImportacao();
+}
+el('btnResumoVendas').addEventListener('click', abrirImportacao);
+el('btnResumoVendasHeatmap').addEventListener('click', abrirImportacao);
+el('btnFecharImportacao').addEventListener('click', () => el('invoiceImportDialog').close());
+el('invoiceImportDialog').addEventListener('close', () => clearTimeout(importPollTimer));
+el('btnIniciarImportacao').addEventListener('click', () => consultarImportacao('iniciar'));
+el('btnPausarImportacao').addEventListener('click', () => consultarImportacao('pausar'));
+el("btnSyncErp").addEventListener("click", sincronizarTodosErp);
+el("btnLogTiny").addEventListener("click", abrirModalResultadoErp);
+el("btnAutorizarTiny").addEventListener("click", autorizarTinyV3);
+el("btnBuscarPosicao").addEventListener("click", buscarPorPosicao);
+el("bpSetor").addEventListener("change", atualizarBpPrateleiras);
+el("bpPrateleira").addEventListener("change", atualizarBpCaixas);
+el("setorInput").addEventListener("change", atualizarPrateleiras);
+el("prateleiraInput").addEventListener("change", atualizarCaixas);
+document.querySelectorAll("[data-operador]").forEach(btn => {
+  btn.addEventListener("click", () => selecionarOperador(btn.dataset.operador));
+});
+el("btnOutroOperador").addEventListener("click", adicionarOutroOperador);
+selecionarOperador(obterUltimoOperador());
+aplicarTema(document.documentElement.dataset.theme);
+
+// Fechar modal clicando fora
+el("modalOverlay").addEventListener("click", e => {
+  if (e.target === el("modalOverlay")) fecharModal();
+});
+
+carregarEstrutura().then(() => {
+  if (MODO_HEATMAP) {
+    carregarHeatmap();
+  } else {
+    atualizarSetores();
+    atualizarBpSetores();
+    carregarPainelSetores();
+  }
+});
+if (!MODO_HEATMAP) {
+  verificarAvisoKeepalive();
+  manterProjetoAtivo();
+  verificarServidorErp();
+  setInterval(verificarServidorErp, ERP_CHECK_INTERVAL_MS);
+  setInterval(manterProjetoAtivo, SEIS_HORAS_MS);
+}
+</script>
+<small class="version-corner">v7.0</small>
+</body>
+</html>

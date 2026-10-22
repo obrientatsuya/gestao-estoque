@@ -1,0 +1,8 @@
+SumatraPDF 3.6.1
+
+SumatraPDF is distributed under the GNU General Public License version 3.
+It is bundled as the local PDF printing engine used by HL Conferencia NFe.
+
+Homepage: https://www.sumatrapdfreader.org/
+Source: https://github.com/sumatrapdfreader/sumatrapdf
+License: https://www.gnu.org/licenses/gpl-3.0.html

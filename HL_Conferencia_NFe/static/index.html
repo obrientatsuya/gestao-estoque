@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HL Conferencia NFe</title>
+  <script>document.documentElement.dataset.theme = localStorage.getItem("hl-theme") || "dark";</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/ui/v7.css">
+  <link rel="stylesheet" href="/ui/conference-v7.css">
+  <script src="/ui/vendor/lucide.js" defer></script>
+  <script src="/ui/v7.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">HL</span><div><strong>Conferencia NFe</strong><small id="connection">Conectando...</small></div></div>
+    <div class="scan-wrap">
+      <input id="skuSearch" type="search" autocomplete="off" placeholder="Digite ou leia o SKU" aria-label="Buscar SKU">
+      <div id="suggestions" class="suggestions" hidden></div>
+    </div>
+    <div class="top-actions">
+      <a class="module-link" href="http://127.0.0.1:8766/" target="_blank" rel="noopener">Coordenadas</a>
+      <label class="operator-label"><span>Operador</span><select id="operator"></select></label>
+      <button id="themeBtn" class="icon-button" title="Usar tema claro" aria-label="Alternar tema">&#9728;</button>
+      <button id="settingsBtn" class="icon-button" title="Configuracoes" aria-label="Configuracoes">&#9881;</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="notes-panel">
+      <div class="panel-head"><div><strong>Notas</strong><small id="notesCount">0 arquivos</small></div><button id="scanBtn" class="icon-button" title="Atualizar pasta" aria-label="Atualizar pasta">&#8635;</button></div>
+      <div id="notesList" class="notes-list"></div>
+    </aside>
+
+    <section class="document-panel">
+      <div class="document-head">
+        <div><strong id="noteTitle">Selecione uma nota</strong><small id="lastAction">Nenhuma acao registrada</small></div>
+        <div class="viewer-tools">
+          <button id="previousPage" class="icon-button" title="Pagina anterior" aria-label="Pagina anterior">&#8593;</button>
+          <button id="pageIndicator" class="page-indicator" title="Ir para a pagina atual">1 / 1</button>
+          <button id="nextPage" class="icon-button" title="Proxima pagina" aria-label="Proxima pagina">&#8595;</button>
+          <button id="zoomOut" class="icon-button" title="Diminuir zoom" aria-label="Diminuir zoom">&#8722;</button>
+          <span id="zoomValue">100%</span>
+          <button id="zoomIn" class="icon-button" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
+          <button id="fitWidth" class="fit-button" title="Ajustar a largura">Ajustar</button>
+        </div>
+      </div>
+      <div id="documentViewport" class="document-viewport">
+        <div id="emptyState" class="empty-state"><span>NF</span><strong>Aguardando nota fiscal</strong></div>
+        <div id="pagesContainer" class="pages-container" hidden></div>
+      </div>
+    </section>
+
+    <aside class="items-panel">
+      <div class="progress-area">
+        <div class="progress-copy"><div><strong id="progressValue">0%</strong><span>conferido</span></div><div class="score"><strong id="scoreValue">0 XP</strong><span id="streak">0 / 0 itens</span></div></div>
+        <div class="progress-track"><div id="progressBar"></div></div>
+        <div class="unit-row"><span id="unitStatus">0 de 0 unidades</span><span id="differenceStatus">saldo 0</span></div>
+        <div class="export-actions">
+          <a id="downloadFinal" aria-disabled="true">Baixar PDF final</a>
+          <a id="printFinal" target="_blank" rel="noopener" aria-disabled="true">Imprimir PDF final</a>
+        </div>
+        <div class="workflow-row">
+          <div class="color-legend" aria-label="Legenda das cores">
+            <span><i class="legend-done"></i>Conferido</span><span><i class="legend-diff"></i>Divergente</span>
+            <span><i class="legend-pending"></i>Sem marcacao</span>
+          </div>
+          <div class="workflow-actions">
+            <button id="undoBtn" class="undo-button" title="Desfazer ultima alteracao" aria-label="Desfazer ultima alteracao">&#8630; Desfazer</button>
+            <button id="historyBtn" class="history-button">Historico</button>
+            <button id="resetBtn" class="reset-button">Resetar</button>
+          </div>
+        </div>
+      </div>
+      <div id="itemsList" class="items-list"></div>
+    </aside>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" id="settingsForm">
+      <div class="dialog-head"><strong>Configuracoes</strong><button value="cancel" class="icon-button" aria-label="Fechar">&#215;</button></div>
+      <label>Pasta das notas<input id="watchDir" type="text"></label>
+      <label>Impressora<select id="printer"></select></label>
+      <div class="dialog-actions"><button id="restartServer" type="button" class="restart-button">Reiniciar servidor</button><span class="dialog-spacer"></span><button value="cancel" class="secondary">Cancelar</button><button id="saveSettings" value="default">Salvar</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="historyDialog" class="history-dialog">
+    <div class="history-shell">
+      <div class="dialog-head"><div><strong>Historico da nota</strong><small id="historySubtitle">Ordem cronologica</small></div><button id="closeHistory" class="icon-button" aria-label="Fechar">&#215;</button></div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </dialog>
+
+  <dialog id="resetDialog" class="reset-dialog">
+    <form method="dialog" id="resetForm">
+      <div class="dialog-head"><strong>Resetar progresso?</strong><button value="cancel" class="icon-button" aria-label="Fechar">&#215;</button></div>
+      <p>Todos os itens de <strong id="resetNoteLabel"></strong> voltarao ao estado inicial. Quantidades, conferencias e contadores de impressao serao resetados.</p>
+      <div class="reset-warning">Esta acao ficara registrada no historico.</div>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="confirmReset" value="default" class="danger">Sim, resetar</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <small class="version-corner">v7.0</small>
+  <script src="/app.js"></script>
+</body>
+</html>

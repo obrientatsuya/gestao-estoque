@@ -1,0 +1,15 @@
+{
+  "source": "Tiny ERP > Cadastros > Produtos > Imprimir etiquetas",
+  "captured_at": "2026-09-18",
+  "model_id": "1806",
+  "configuration_id": "146",
+  "name": "Etiqueta de produto",
+  "mode": "bobina",
+  "width_cm": 4.0,
+  "height_cm": 2.5,
+  "layout": [
+    {"field": "description", "top_px": 1.98438, "left_px": 1, "width_px": 150, "height_px": 39, "font_pt": 8, "align": "center"},
+    {"field": "sku", "top_px": 43.9688, "left_px": 0, "width_px": 151, "height_px": 29, "font_pt": 14, "bold": true, "align": "center"},
+    {"field": "location", "prefix": "LOCAL: ", "top_px": 72.9844, "left_px": 1, "width_px": 150, "height_px": 29, "font_pt": 10, "align": "center"}
+  ]
+}
