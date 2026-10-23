@@ -1637,10 +1637,10 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
 .heatmap-mode-switch select { background:var(--preto3); color:var(--branco); border:1px solid var(--cinza4); border-radius:6px; padding:8px; font:inherit; }
 #salesMapStatus { color:var(--cinza2); font-size:12px; overflow-wrap:anywhere; }
 </style>
-<link rel="stylesheet" href="/ui/v7.css?v=7.1-logs">
+<link rel="stylesheet" href="/ui/v7.css?v=7.2">
 <script src="/ui/vendor/lucide.js" defer></script>
 <script src="/ui/warehouse-metrics.js?v=7.1"></script>
-<script src="/ui/v7.js?v=7.1" defer></script>
+<script src="/ui/v7.js?v=7.2" defer></script>
 </head>
 <body>
 
@@ -1728,10 +1728,12 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
       <button class="btn-header" id="btnAtualizarHeatmap">Atualizar</button>
       <button class="btn-header" id="btnImportarNotasHeatmap">Importar notas</button>
       <button class="btn-header" id="btnResumoVendasHeatmap">Atualizar vendas</button>
+      <button class="btn-header" id="btnAtualizarUnidades">Atualizar todas as unidades</button>
       <button class="btn-header" id="btnFecharHeatmap">Fechar</button>
     </div>
   </div>
   <div class="heatmap-shell">
+    <div class="units-update-bar"><span id="unitsUpdatedAt"></span><span id="unitsRefreshStatus" role="status"></span></div>
     <div class="heatmap-mode-switch"><select id="heatmapMetrica" aria-label="Tipo de mapa"><option value="ocupacao">Ocupacao por unidades</option><option value="skus">Quantidade de SKUs</option><option value="vendas">Vendas por caixa</option></select><span id="salesMapStatus" role="status"></span></div>
     <div class="heatmap-scale" id="heatmapColorScale"><span>0</span><i></i><span id="heatmapScaleMax"></span></div>
     <div id="heatmapStats" class="heatmap-stats"></div>
@@ -3465,12 +3467,19 @@ async function salvarPosicao() {
   setMsg("msgSalvar", "Salvando...", "info");
 
   let posicaoAnterior = "";
+  let anterior=null;
   try {
     const ant = await apiBuscarPorSku(skuAtual);
+    anterior=ant[0]||null;
     if (ant.length) posicaoAnterior = montarPosicao(ant[0]);
   } catch(e) {}
 
   try {
+    await carregarBloqueios();
+    if(caixasBloqueadas.get(WarehouseMetrics.key(corpo))?.bloqueada && (!anterior || WarehouseMetrics.key(anterior)!==WarehouseMetrics.key(corpo))){
+      feedbackCaixaBloqueada(corpo);
+      return;
+    }
     const { bloqueios } = await verificarDuplicidades(corpo);
     if (bloqueios.length) {
       setMsg("msgSalvar", bloqueios[0], "erro");
@@ -3519,6 +3528,7 @@ async function salvarPosicao() {
     el("skuBusca").focus();
 
   } catch(e) {
+    if(String(e.message).includes('CAIXA_BLOQUEADA')){feedbackCaixaBloqueada(corpo);return;}
     setMsg("msgSalvar", "Erro ao salvar: " + e.message, "erro");
   } finally {
     el("btnSalvar").disabled = false;
@@ -3528,6 +3538,52 @@ async function salvarPosicao() {
 // ===== PAINEL VISAO GERAL (LAYOUT PRATELEIRAS v2) =====
 
 let painelDados = [];
+let caixasBloqueadas=new Map();
+async function carregarBloqueios(){
+  const r=await fetch(erpUrl('/box-locks'),{cache:'no-store'}),data=await r.json();
+  if(!r.ok||!data.ok)throw new Error(data.erro||'Nao foi possivel confirmar os bloqueios de caixa.');
+  caixasBloqueadas=new Map(data.itens.map(row=>[WarehouseMetrics.key(row),row]));
+  pintarBloqueios();
+}
+function pintarBloqueios(){
+  document.querySelectorAll('.caixa-cel,.heatmap-cell').forEach(cell=>{
+    const m=cell.dataset.posicao?.match(/^(\d+S)-(P\d+)(C\d+)$/);
+    const position=m?{setor:m[1],prateleira:m[2],caixa:m[3]}:cell.dataset;
+    const blocked=!!caixasBloqueadas.get(WarehouseMetrics.key(position))?.bloqueada;
+    cell.dataset.locked=String(blocked);
+    cell.querySelector('.box-lock-indicator')?.remove();
+    if(blocked){
+      const icon=document.createElement('span');icon.className='box-lock-indicator';icon.title='Caixa bloqueada para novos SKUs';icon.setAttribute('aria-label',icon.title);icon.innerHTML='<i data-lucide="lock"></i>';cell.appendChild(icon);window.lucide?.createIcons({root:icon});
+    }
+  });
+}
+function feedbackCaixaBloqueada(position){
+  el('btnSalvar').after(el('msgSalvar'));
+  el('msgSalvar').setAttribute('role','status');
+  setMsg('msgSalvar',`Caixa ${position.setor}-${position.prateleira}${position.caixa} bloqueada. Nenhum SKU foi registrado. Desbloqueie a caixa ou escolha outra.`,'erro');
+  const target=el('main'),reduced=document.documentElement.dataset.motion==='off'||(document.documentElement.dataset.motion!=='on'&&matchMedia('(prefers-reduced-motion:reduce)').matches);
+  target.animate(reduced?[{opacity:.65},{opacity:1}]:[{transform:'translateX(0)'},{transform:'translateX(-7px)'},{transform:'translateX(7px)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}],{duration:360});
+  el('caixaInput').setAttribute('aria-invalid','true');
+}
+function controlesBloqueio(host,position){
+  if(!position)return;
+  const refresh=host.querySelector('.insight-refresh'),button=document.createElement('button');
+  button.className='btn-header box-lock-toggle';button.disabled=true;button.textContent='Bloqueio...';refresh.after(button);
+  let known=false;
+  const show=()=>{const blocked=!!caixasBloqueadas.get(WarehouseMetrics.key(position))?.bloqueada;button.innerHTML=`<i data-lucide="${blocked?'lock-keyhole':'lock-open'}"></i><span>${blocked?'Desbloquear':'Bloquear'}</span>`;button.setAttribute('aria-pressed',String(blocked));button.title=blocked?'Permitir novos SKUs nesta caixa':'Impedir novos SKUs nesta caixa';window.lucide?.createIcons({root:button});};
+  carregarBloqueios().then(()=>{known=true;show();button.disabled=false;}).catch(e=>{button.textContent='Bloqueio indisponivel';host.querySelector('.box-insights-error').textContent=e.message;});
+  button.addEventListener('click',async()=>{
+    if(!known)return;
+    button.disabled=true;
+    try{
+      const r=await fetch(erpUrl('/box-lock'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({posicao:position,bloqueada:button.getAttribute('aria-pressed')!=='true'})}),data=await r.json();
+      if(!r.ok||!data.ok)throw new Error(data.erro||'Bloqueio nao confirmado.');
+      caixasBloqueadas.set(WarehouseMetrics.key(position),data.item);show();pintarBloqueios();
+      host.querySelector('.box-insights-error').textContent='';
+    }catch(e){host.querySelector('.box-insights-error').textContent=e.message;}
+    finally{button.disabled=false;}
+  });
+}
 let painelExpandidoTudo = false;
 let drawerAberto = null;   // { el, wrap, caixaNome, cel, ladoKey }
 let painelZoom = 1.0;
@@ -3624,6 +3680,7 @@ function pintarOcupacaoCaixas() {
     bar.title=q.complete?`${numeroInsights(q.units)} unidades; escala relativa ao setor com ${numeroInsights(referencia)} un.`:`Estoque parcial: ${q.known}/${q.total} SKUs consultados`;
   });
   aplicarFiltroNivelVisual();
+  pintarBloqueios();
 }
 
 // Cor do nível para a barra lateral do setor
@@ -4669,7 +4726,8 @@ async function abrirInsightsCaixa(host, posicao, skus, inline = false) {
   const status = host.querySelector('.box-insights-status');
   const error = host.querySelector('.box-insights-error');
   const content = host.querySelector('.box-insights-content');
-  const buttons = (inline ? host.querySelector('.drawer-insights-toolbar') : host).querySelectorAll('button');
+  controlesBloqueio(host,position);
+  const buttons = (inline ? host.querySelector('.drawer-insights-toolbar') : host).querySelectorAll('button:not(.box-lock-toggle)');
   const show = data => {
     if (!atual()) return;
     integrarOcupacao(data);
@@ -4840,9 +4898,12 @@ function renderMapaCaixasHeatmap(caixas, filtroSetor) {
     cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
   });
   window.HL_UI?.reveal(alvo);
+  pintarBloqueios();
 }
 
 function renderHeatmap(rows,keepBox=false) {
+  const stamps=rows.map(r=>r.unidades_atualizadas_em).filter(Boolean).sort((a,b)=>Date.parse(a)-Date.parse(b));
+  el('unitsUpdatedAt').textContent=stamps.length?`Unidades: ultima consulta ${formatarDataHora(stamps.at(-1))} · mais antiga ${formatarDataHora(stamps[0])}`:'Unidades ainda nao consultadas';
   const openCell=keepBox?el('heatmapMapa').querySelector('[aria-expanded="true"]'):null;
   const openPosition=openCell?.dataset.posicao;
   const openHost=openCell?.closest('.heatmap-sector').querySelector('.box-insights-host');
@@ -4907,8 +4968,9 @@ function renderHeatmap(rows,keepBox=false) {
   }
 }
 
-async function carregarHeatmap() {
-  el("heatmapMapa").innerHTML = `<div class="heatmap-empty">Lendo estoque compartilhado...</div>`;
+async function carregarHeatmap(silent=false) {
+  const preserve=silent===true;
+  if(!preserve)el("heatmapMapa").innerHTML = `<div class="heatmap-empty">Lendo estoque compartilhado...</div>`;
   el("btnAtualizarHeatmap").disabled = true;
   try {
     const rows = await apiListarTudo();
@@ -4918,7 +4980,7 @@ async function carregarHeatmap() {
       if (!response.ok || !data.ok) throw new Error(data.erro || 'Falha ao ler resumo de vendas');
       heatmapVendas = new Map(data.itens.map(r => [String(r.sku).toUpperCase(),r]));
     }
-    renderHeatmap(rows);
+    renderHeatmap(rows,preserve);
   } catch (e) {
     el("heatmapMapa").innerHTML = `<div class="heatmap-empty">Falha ao carregar: ${escapeHtmlAttr(e.message)}</div>`;
   } finally {
@@ -4950,6 +5012,23 @@ el("auditSku").addEventListener("keydown", e => { if (e.key === "Enter") investi
 el("btnTema").addEventListener("click", alternarTema);
 el("btnTemaHeatmap").addEventListener("click", alternarTema);
 el("btnAtualizarHeatmap").addEventListener("click", carregarHeatmap);
+let unitsPollTimer=null;
+let unitsLastProgress='';
+async function acompanharUnidades(start=false){
+  clearTimeout(unitsPollTimer);
+  const button=el('btnAtualizarUnidades');button.disabled=true;
+  try{
+    const r=await fetch(erpUrl('/units-refresh'),start?{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}:{cache:'no-store'}),data=await r.json();
+    if(!r.ok||!data.ok)throw new Error(data.erro||'Falha ao atualizar unidades.');
+    const done=data.status==='concluido',key=`${data.salvas}:${data.status}`;
+    el('unitsRefreshStatus').textContent=`${data.total!=null?`${data.atual||0}/${data.total} caixas · `:''}${data.mensagem||''}${data.ultimo_lote_completo_em?' · Ultimo lote completo neste PC: '+formatarDataHora(data.ultimo_lote_completo_em):''}${data.erros?.length?' · '+data.erros.slice(-2).join(' | '):''}`;
+    button.textContent=data.ativo?'Atualizando unidades...':'Atualizar todas as unidades';
+    button.disabled=!!data.ativo;
+    if(!data.ativo&&data.salvas&&key!==unitsLastProgress){unitsLastProgress=key;await carregarHeatmap(true);}
+    if(data.ativo)unitsPollTimer=setTimeout(()=>acompanharUnidades(),2500);
+  }catch(e){el('unitsRefreshStatus').textContent=e.message;button.disabled=false;}
+}
+el('btnAtualizarUnidades').addEventListener('click',()=>acompanharUnidades(true));
 el("btnFecharHeatmap").addEventListener("click", () => window.close());
 el("heatmapFiltroSetor").addEventListener("change", () => renderMapaCaixasHeatmap(caixasParaHeatmap(heatmapDados), el("heatmapFiltroSetor").value));
 let importPollTimer = null;
@@ -5027,6 +5106,7 @@ el("bpSetor").addEventListener("change", atualizarBpPrateleiras);
 el("bpPrateleira").addEventListener("change", atualizarBpCaixas);
 el("setorInput").addEventListener("change", atualizarPrateleiras);
 el("prateleiraInput").addEventListener("change", atualizarCaixas);
+el('caixaInput').addEventListener('change',()=>el('caixaInput').removeAttribute('aria-invalid'));
 document.querySelectorAll("[data-operador]").forEach(btn => {
   btn.addEventListener("click", () => selecionarOperador(btn.dataset.operador));
 });
@@ -5042,12 +5122,14 @@ el("modalOverlay").addEventListener("click", e => {
 carregarEstrutura().then(() => {
   if (MODO_HEATMAP) {
     carregarHeatmap();
+    acompanharUnidades();
   } else {
     atualizarSetores();
     atualizarBpSetores();
     carregarPainelSetores();
   }
 });
+carregarBloqueios().catch(()=>{});
 if (!MODO_HEATMAP) {
   verificarAvisoKeepalive();
   manterProjetoAtivo();
@@ -5056,6 +5138,6 @@ if (!MODO_HEATMAP) {
   setInterval(manterProjetoAtivo, SEIS_HORAS_MS);
 }
 </script>
-<small class="version-corner">v7.1</small>
+<small class="version-corner">v7.2</small>
 </body>
 </html>

@@ -12,6 +12,7 @@
 | `box_insights.py` | Cache SQLite, consultas sob demanda e agregacao existente |
 | `shared_sales.py` | Leitura/publicacao do resumo compartilhado |
 | `box_occupancy.py` | Validacao de estoque recente e publicacao limitada das unidades |
+| `warehouse_controls.py` | Bloqueio compartilhado e job de unidades por caixa, separado de vendas |
 | `ui/warehouse-metrics.js` | Totais deduplicados, dados desconhecidos e escalas continuas |
 | `enviar_localizacoes_tiny_v3.py`, `tiny_v3_auth.py` | Cliente e OAuth Tiny existentes |
 | `HL_Conferencia_NFe/` | Parser PDF, progresso SQLite, exportacao e impressao |
@@ -64,9 +65,10 @@ O perfil Publicador tem pasta separada; o Leitor reutiliza a pasta historica V5.
 A V7 nao migra nem apaga essas pastas. O progresso da conferencia e independente.
 O mutex historico tambem foi mantido para nao abrir versoes concorrentes.
 
-Se outro EXE antigo ainda estiver aberto, feche-o pelo console com `SAIR` antes
-de abrir o novo. A instancia unica pode apenas trazer a interface ja aberta;
-nao assuma que um duplo clique substituiu uma versao que estava rodando.
+A partir da V7.2, abrir o EXE novo encerra instancias HL conhecidas nas portas
+8766/8770 e assume a instancia unica. Processos desconhecidos nao sao encerrados.
+Consultas em andamento podem ser interrompidas; caixas e vendas ja confirmadas
+permanecem salvas. Nao inicie a troca durante uma impressao ou cadastro pendente.
 O reinicio no modulo NFe e o mecanismo existente do servidor, nao um atualizador
 que baixa um EXE novo. Distribua a compilacao nova para atualizar outro PC.
 

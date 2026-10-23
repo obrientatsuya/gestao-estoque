@@ -8,7 +8,7 @@
     btnAutorizarTiny:['key-round',false], btnBackupHeader:['download',false],
     btnEstrutura:['settings-2',false], btnZoomMenos:['minus',true],btnZoomMais:['plus',true],
     btnMostrarCadastro:['plus',false], btnSalvar:['check',false],
-    btnAtualizarHeatmap:['refresh-cw',false],btnBuscarAuditoria:['search',false],
+    btnAtualizarHeatmap:['refresh-cw',false],btnAtualizarUnidades:['boxes',false],btnBuscarAuditoria:['search',false],
     btnFecharAuditoria:['x',true],btnFecharImportacao:['x',true],
     scanBtn:['refresh-cw',true],themeBtn:['sun',true],settingsBtn:['settings-2',true],
     previousPage:['arrow-up',true],nextPage:['arrow-down',true],zoomOut:['minus',true],zoomIn:['plus',true],
@@ -56,7 +56,7 @@
     if(reduced()||before===Number(value)){el.textContent=format(value);return;}
     const start=performance.now();
     const tick=now=>{
-      const t=Math.min(1,(now-start)/220),p=1-Math.pow(1-t,3);
+      const t=Math.max(0,Math.min(1,(now-start)/220)),p=1-Math.pow(1-t,3);
       el.textContent=format(t===1?value:Math.round(before+(value-before)*p));
       if(t<1&&el.isConnected)el._hlFrame=requestAnimationFrame(tick);
     };

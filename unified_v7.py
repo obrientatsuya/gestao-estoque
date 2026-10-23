@@ -23,11 +23,22 @@ def adquirir_instancia_unica() -> bool:
   global MUTEX_HANDLE
   if not hasattr(ctypes, "windll"):
     return True
-  MUTEX_HANDLE = ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\HL_Coordenadas_V5_Unificado")
-  if ctypes.windll.kernel32.GetLastError() == 183:
-    webbrowser.open_new_tab("http://127.0.0.1:8766/")
-    return False
-  return True
+  kernel=ctypes.windll.kernel32
+  kernel.CreateMutexW.restype=ctypes.c_void_p
+  kernel.CreateMutexW.argtypes=[ctypes.c_void_p,ctypes.c_bool,ctypes.c_wchar_p]
+  kernel.CloseHandle.argtypes=[ctypes.c_void_p]
+  for attempt in range(30):
+    MUTEX_HANDLE=kernel.CreateMutexW(None,False,"Local\\HL_Coordenadas_V5_Unificado")
+    if not MUTEX_HANDLE:raise RuntimeError('Nao foi possivel criar o controle de instancia.')
+    if kernel.GetLastError()!=183:return True
+    kernel.CloseHandle(MUTEX_HANDLE)
+    MUTEX_HANDLE=None
+    if attempt==0:
+      print('Fechando a instancia anterior do HL para abrir esta versao...',flush=True)
+      if not encerrar_instancias_legadas():return False
+    time.sleep(.2)
+  print('A instancia anterior ainda esta encerrando. Tente novamente.',flush=True)
+  return False
 
 
 def porta_ocupada(porta: int) -> bool:
@@ -62,8 +73,8 @@ def encerrar_instancias_legadas() -> bool:
       )
       linha = next(csv.reader(io.StringIO(bruto)), [])
       nome = (linha[0] if linha else "").strip().lower()
-      if nome in nomes_permitidos:
-        subprocess.run(["taskkill", "/F", "/PID", str(pid)], creationflags=flags, capture_output=True)
+      if nome in nomes_permitidos or re.fullmatch(r'hl_coordenadas_(publicador|leitor)_v\d+(?: \(\d+\))?\.exe',nome):
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], creationflags=flags, capture_output=True)
     except Exception:
       continue
   for _ in range(20):

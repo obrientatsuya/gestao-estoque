@@ -1,4 +1,4 @@
-# V7.1: Decisoes e Validacao
+# V7.2: Decisoes e Validacao
 
 ## Escopo
 
@@ -46,9 +46,23 @@ Nao foram aplicados mecanismos de venda, urgencia ou manipulacao ao fluxo intern
 - Sao otimizacoes direcionadas; nao se afirma ganho percentual sem benchmark em
   carga real. Nao houve refatoracao indiscriminada da codebase.
 
+## V7.2
+
+- Troca de EXE encerra somente instancias HL reconhecidas nas portas locais e
+  readquire o mutex historico. Teste real isolado confirmou V7.1 encerrada e V7.2
+  com os dois servidores ativos. Nao e um atualizador que baixa novos arquivos.
+- Atualizacao geral explicita de unidades: GETs sequenciais, confirmacao por caixa,
+  estado persistente e falha parcial sem publicar zeros. Nao consulta vendas/notas.
+- Bloqueio compartilhado com RPC e trigger no Supabase; serializacao por caixa
+  impede corrida entre bloquear e inserir. Atualizacoes na mesma caixa e retiradas
+  continuam permitidas. Validacao de UI antes do envio e feedback sem popup.
+- Dados compartilhados mostram as datas mais recente/antiga; o ultimo lote completo
+  e identificado como local deste PC. Mapa recarregado no final do lote para evitar
+  ler milhares de linhas repetidamente durante o processamento.
+
 ## Validacao
 
-- 48 testes Python com clientes simulados e SQLite temporario, incluindo o
+- 58 testes Python com clientes simulados e SQLite temporario, incluindo o
   contrato da RPC, frescor, falhas parciais e GETs do perfil Leitor.
 - 14 testes Node: fila de quantidades, dados desconhecidos, deduplicacao, decimais,
   totais por unidades e escalas lineares de vendas/ocupacao.

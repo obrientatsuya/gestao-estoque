@@ -1,7 +1,7 @@
 # HL Coordenadas
 
 Sistema interno de localizacao de estoque e conferencia digital de notas fiscais.
-Os dois modulos rodam no mesmo processo Windows e abrem no navegador. V7.1.
+Os dois modulos rodam no mesmo processo Windows e abrem no navegador. V7.2.
 
 ![Coordenadas no tema claro](docs/screenshots/coordenadas-claro.jpg)
 
@@ -67,6 +67,23 @@ o sentido inverso. Filtrar um setor nao muda a referencia global da escala.
 As animacoes respeitam a preferencia do sistema. **Mais > Animacoes** permite
 ativar ou desativar explicitamente, com a escolha lembrada no navegador.
 
+O mapa inclui **Atualizar todas as unidades**: operacao explicita em segundo plano,
+sequencial e limitada pelo cliente Tiny. Consulta apenas produtos/estoque por GET,
+sem recalcular vendas nem ler notas. Cada caixa completa e confirmada no Supabase
+separadamente; uma falha nao publica zeros. O progresso e o ultimo lote completo
+deste PC sao persistidos. As datas de unidades mais recente/antiga vem das linhas
+compartilhadas no Supabase, independentemente de qual PC fez a consulta.
+
+### Caixas Bloqueadas
+
+Execute uma vez [supabase_bloqueio_caixas.sql](supabase_bloqueio_caixas.sql).
+Ao abrir uma caixa, **Bloquear/Desbloquear** fica ao lado de Atualizar. O bloqueio
+e compartilhado e impede cadastro ou movimentacao de novos SKUs para a caixa.
+SKUs existentes podem continuar sendo atualizados ou retirados. Um trigger impede
+a entrada mesmo por versoes antigas da interface. A interface atual mostra uma
+mensagem junto de Salvar e treme sem popup; movimento reduzido usa apenas feedback
+de opacidade. Falha ao consultar o bloqueio impede salvar ate confirmar o estado.
+
 ## Executar o Codigo
 
 Requer Windows 64 bits e Python 3.14. Os executaveis prontos sao distribuidos
@@ -116,6 +133,10 @@ Os nomes internos V5 foram preservados para nao perder dados das instalacoes ant
 Pelo codigo-fonte, os dados de Coordenadas ficam na raiz, salvo se
 `HL_COORDENADAS_DATA_DIR` for definido. Feche o programa antes de fazer backup do
 SQLite; preserve tambem os PDFs originais. Trocar o EXE nao exige apagar bancos.
+
+A V7.2 fecha a instancia HL anterior ao iniciar este EXE. Programas desconhecidos
+nas mesmas portas nao sao encerrados. Evite trocar a versao durante uma impressao
+ou cadastro pendente; consultas interrompidas preservam apenas o que ja foi salvo.
 
 Para preparar o Supabase, consulte [Configuracao de vendas](CONFIGURAR_RESUMO_VENDAS.md)
 e [Arquitetura e operacao](docs/ARQUITETURA.md). SQLs sao executados manualmente pelo
@@ -168,6 +189,8 @@ Os testes automatizados usam clientes simulados e bancos temporarios.
 ![Mapa de ocupacao](docs/screenshots/mapa-ocupacao.jpg)
 ![Mapa de vendas](docs/screenshots/mapa-vendas.jpg)
 ![Caixas por vendas](docs/screenshots/mapa-vendas-caixas.jpg)
+![Caixa bloqueada e controle ao lado de Atualizar](docs/screenshots/caixa-bloqueada.jpg)
+![Tentativa bloqueada, sem popup](docs/screenshots/cadastro-bloqueado.jpg)
 ![Acompanhamento da publicacao de vendas, dados sinteticos](docs/screenshots/publicacao-vendas.jpg)
 ![Auditoria por SKU](docs/screenshots/auditoria.jpg)
 ![Estrutura de setores e prateleiras](docs/screenshots/estrutura.jpg)

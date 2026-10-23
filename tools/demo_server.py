@@ -15,6 +15,8 @@ STOCK = []
 QUANTITIES=[1000,200,650,250,200,100,150,50,70,30,20,10,100,30,150,30,70,20,50,10,30,5,20,2,10,5,8,2,6,1,4,0,2,0,0,None]
 JOBS={}
 BOX_ACTIONS=[]
+LOCKS={}
+UNITS_STATE={'ok':True,'status':'pronto','ativo':False}
 for index in range(36):
     STOCK.append({'sku':f'HL-{2048+index}','setor':f'{index//12+1}S','prateleira':f'P{index//6%2+1}',
                   'caixa':f'C{index//2%3+1}','lado':'','andar':'','nivel':['pouca','media','quase'][index%3],
@@ -89,7 +91,9 @@ class Handler(BaseHTTPRequestHandler):
         if path in ('/style.css','/app.js'):
             file=ROOT/'HL_Conferencia_NFe/static'/path[1:]
             return self.send(file.read_bytes(),mime='text/css' if path.endswith('css') else 'application/javascript')
-        if path=='/health':return self.send({'ok':True,'edicao':'leitor','token_salvo':False,'versao':'7.0'})
+        if path=='/health':return self.send({'ok':True,'edicao':'leitor','token_salvo':False,'versao':'7.2'})
+        if path=='/box-locks':return self.send({'ok':True,'itens':list(LOCKS.values())})
+        if path=='/units-refresh':return self.send(UNITS_STATE)
         if path=='/rest/v1/estoque':return self.send(self.filtered(STOCK,q))
         if path=='/rest/v1/estrutura':return self.send(STRUCTURE)
         if path=='/rest/v1/historico_movimentos':return self.send(self.filtered(EVENTS,q))
@@ -105,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
             {'hora':STAMP,'sku':'HL-2049','etapa':'confirmado','nivel':'sucesso','mensagem':'SUCESSO: Supabase confirmou a gravacao deste SKU.'},
             {'hora':STAMP,'sku':'HL-2050','etapa':'erro','nivel':'erro','mensagem':'HTTP 403: acesso recusado. Resumo anterior preservado.'}]})
         if path=='/box-insights-job':return self.send({'ok':True,**JOBS[q['id'][0]]})
-        if path=='/__demo_state':return self.send({'acoes':BOX_ACTIONS,'estoque':STOCK})
+        if path=='/__demo_state':return self.send({'acoes':BOX_ACTIONS,'estoque':STOCK,'bloqueios':list(LOCKS.values())})
         if path=='/api/settings':return self.send({'watch_dir':'Desktop/Notas fiscais','printer':'Impressora de etiquetas','printers':['Impressora de etiquetas'],'operators':[{'name':'Anderson'},{'name':'Luiz'}]})
         if path=='/api/notes':return self.send({'notes':[NOTE,{**NOTE,'id':'demo2','number':'000129','filename':'Recebimento_pendente.pdf','progress':0}]})
         if path.startswith('/api/notes/') and '/pages/' in path:return self.send(page_image(),mime='image/png')
@@ -116,6 +120,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path=urlparse(self.path).path
         payload=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or b'{}')
+        if path=='/box-lock':
+            position=payload['posicao'];key=tuple(position[k] for k in ('setor','prateleira','caixa'))
+            LOCKS[key]={**position,'bloqueada':payload['bloqueada'],'atualizado_em':STAMP}
+            return self.send({'ok':True,'item':LOCKS[key]})
+        if path=='/units-refresh':
+            BOX_ACTIONS.append('todas_unidades')
+            for row in STOCK:
+                row['unidades_estoque']=(row['unidades_estoque'] or 0)+7
+                row['unidades_atualizadas_em']='2026-10-23T15:30:00-03:00'
+            UNITS_STATE.update(status='concluido',total=18,atual=18,salvas=18,falhas=0,mensagem='18 caixas salvas; 0 falhas.',ultimo_lote_completo_em='2026-10-23T15:31:00-03:00')
+            return self.send(UNITS_STATE)
+        if path=='/rest/v1/estoque':
+            BOX_ACTIONS.append('stock-write')
+            return self.send({'message':'Escritas nao sao necessarias nesta demo.'},409)
         if path=='/box-insights':
             BOX_ACTIONS.append(payload.get('acao','cache'))
             items=[]

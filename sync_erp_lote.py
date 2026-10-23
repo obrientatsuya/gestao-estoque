@@ -23,6 +23,7 @@ from enviar_localizacoes_tiny_v3 import TinyV3Client, TOKEN_FILE
 from tiny_v3_auth import montar_url_autorizacao, post_form, salvar_tokens
 from box_insights import BoxInsights
 from shared_sales import SharedSales
+from warehouse_controls import WarehouseControls
 from app_edition import load_edition
 from runtime_config import load_public_config
 import mimetypes
@@ -39,7 +40,7 @@ USER_DATA_DIR = pathlib.Path(os.getenv("HL_COORDENADAS_DATA_DIR") or (
 APP_DIR = str(BUNDLE_DIR)
 HTML_APP = "HL_COORDENADAS_v7.html"
 PORTA = 8766
-VERSAO_PONTE = "7.1"
+VERSAO_PONTE = "7.2"
 DELAY_LOTE_SEG = 0.6
 SYNC_LOG_DIR = str(USER_DATA_DIR / "output")
 AUDIT_DB = USER_DATA_DIR / "auditoria.sqlite3"
@@ -203,6 +204,7 @@ def reset_tiny_v3_client():
 
 box_insights = BoxInsights(USER_DATA_DIR / 'caixas_tiny.sqlite3', get_tiny_v3_client)
 shared_sales = SharedSales(box_insights, SUPABASE_URL, SUPABASE_KEY, USER_DATA_DIR, EDITION)
+warehouse = WarehouseControls(box_insights,lambda path,payload=None:shared_sales.request(path,payload))
 
 
 def atualizar_status_erp_supabase(sku, ok, erro=""):
@@ -825,6 +827,11 @@ class Handler(BaseHTTPRequestHandler):
 
     if path == '/sales-sync':
       return json_response(self, {'ok':True, **shared_sales.status()})
+    if path == '/units-refresh':
+      return json_response(self, {'ok':True, **warehouse.status()})
+    if path == '/box-locks':
+      try:return json_response(self, {'ok':True,'itens':warehouse.locks()})
+      except ValueError as exc:return json_response(self, {'ok':False,'erro':str(exc)},502)
 
     html_path = os.path.join(APP_DIR, HTML_APP)
     if path in ("", "/") and os.path.isfile(html_path):
@@ -853,9 +860,18 @@ class Handler(BaseHTTPRequestHandler):
 
     if path == '/invoice-import':
       return json_response(self, {'ok':False,'erro':'Importacao de notas fiscais desativada temporariamente.'}, 409)
+    if path == '/units-refresh':
+      try:
+        if shared_sales.busy:raise ValueError('Aguarde a atualizacao de vendas terminar antes de atualizar todas as unidades.')
+        return json_response(self, {'ok':True,**warehouse.start()})
+      except ValueError as exc:return json_response(self, {'ok':False,'erro':str(exc)},409)
+    if path == '/box-lock':
+      try:return json_response(self, {'ok':True,'item':warehouse.set_lock(data.get('posicao'),data.get('bloqueada'))})
+      except ValueError as exc:return json_response(self, {'ok':False,'erro':str(exc)},409)
     if path == '/sales-sync':
       try:
         if data.get('acao') == 'iniciar':
+          if warehouse.active:raise ValueError('Aguarde a atualizacao de unidades terminar antes de consultar vendas.')
           if not shared_sales.publisher_key():
             raise ValueError('Configure vendas_publicador.json apenas no PC autorizado.')
           shared_sales.start(None, refresh=True)
@@ -883,6 +899,7 @@ class Handler(BaseHTTPRequestHandler):
       if not skus:
         return json_response(self, {'ok': True, **shared_sales.cache([])})
       try:
+        if warehouse.active:raise ValueError('A atualizacao geral de unidades ja esta consultando o estoque. Aguarde sua conclusao.')
         jid = shared_sales.start(skus, action == 'atualizar', action == 'continuar', data.get('posicao'))
         return json_response(self, {'ok': True, 'job_id': jid})
       except ValueError as exc:

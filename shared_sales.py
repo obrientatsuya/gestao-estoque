@@ -70,6 +70,9 @@ class SharedSales:
                 return json.loads(raw) if raw else None
         except Exception as exc:
             code = getattr(exc, 'code', None)
+            if path.startswith(('caixas_bloqueadas','rpc/definir_bloqueio_caixa')):
+                if code in (400,404):raise ValueError('Execute supabase_bloqueio_caixas.sql no SQL Editor para habilitar o bloqueio compartilhado.') from None
+                raise ValueError('Nao foi possivel confirmar o bloqueio no Supabase. Confira conexao e permissoes.') from None
             if path.startswith('rpc/atualizar_ocupacao_caixa'):
                 detail = ''
                 if hasattr(exc,'read'):

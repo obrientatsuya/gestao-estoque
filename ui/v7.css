@@ -37,6 +37,15 @@ button{font-weight:550}
 .sales-log-row[data-level="sucesso"] span{color:var(--verde,#299964)}
 .sales-log-row[data-level="erro"] span{color:var(--erro)}
 #salesPublicationLogs small{display:block;color:var(--cinza2);margin:10px 0 16px;font-size:11px}
+.units-update-bar{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;color:var(--cinza2);font-size:12px;overflow-wrap:anywhere}
+.heatmap-actions{flex-wrap:wrap;justify-content:flex-end}
+.box-lock-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.box-lock-toggle svg{width:14px;height:14px;flex:none}
+.box-lock-toggle[aria-pressed="true"]{color:var(--erro);border-color:var(--erro)}
+.caixa-cel,.heatmap-cell{position:relative}
+.box-lock-indicator{position:absolute;right:3px;top:3px;color:var(--cinza1);display:flex;pointer-events:none}
+.box-lock-indicator svg{width:12px;height:12px}
+@media(max-width:760px){.heatmap-head{flex-wrap:wrap}.heatmap-actions{justify-content:flex-start}}
 .sales-log-empty{padding:20px 0;color:var(--cinza2)}
 @media(max-width:600px){.sales-log-row{grid-template-columns:1fr 1fr}.sales-log-row span{grid-column:1/-1}}
 .header-menu-pop .mobile-module{display:none}
