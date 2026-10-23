@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from calcular_saidas_tiny import calculate, fetch_movements
+from box_occupancy import BoxOccupancy
 
 
 class SharedSales:
@@ -23,6 +24,7 @@ class SharedSales:
         self.busy = False
         self.stop = threading.Event()
         self.current_job = None
+        self.occupancy = BoxOccupancy(insights,lambda path,payload:self.request(path,payload))
         with insights.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS shared_sales(sku TEXT PRIMARY KEY,data TEXT NOT NULL)')
 
@@ -52,6 +54,14 @@ class SharedSales:
                 return json.loads(raw) if raw else None
         except Exception as exc:
             code = getattr(exc, 'code', None)
+            if path.startswith('rpc/atualizar_ocupacao_caixa'):
+                detail = ''
+                if hasattr(exc,'read'):
+                    try:detail = json.loads(exc.read()).get('message','')
+                    except (ValueError,OSError):pass
+                if code in (400,404) and ('function' in detail.lower() or 'schema cache' in detail.lower()):
+                    raise ValueError('Execute supabase_ocupacao_unidades.sql no SQL Editor para compartilhar a ocupacao.') from None
+                raise ValueError('Ocupacao nao salva no Supabase: '+(detail or 'verifique conexao e permissoes.')) from None
             if code in (400, 404):
                 raise ValueError('Configure supabase_resumo_vendas.sql no SQL Editor do Supabase.') from None
             if code in (401, 403):
@@ -105,7 +115,9 @@ class SharedSales:
                 'historico_completo':all(p['vendas'] is not None for p in items),
                 'publicador':bool(self.publisher_key()),'erro_compartilhado':error}
 
-    def start(self, skus, refresh=False, history_only=False):
+    def start(self, skus, refresh=False, history_only=False, position=None):
+        if position is not None:
+            position = self.occupancy.position(position)
         with self.lock:
             if self.busy:
                 raise ValueError('Uma atualizacao de vendas ja esta em andamento neste PC.')
@@ -115,11 +127,13 @@ class SharedSales:
             self.jobs = dict(list(self.jobs.items())[-29:])
             self.jobs[jid] = {'status':'rodando','mensagem':'Lendo resumo compartilhado...','erros':[]}
             self.current_job = jid
-        threading.Thread(target=self.run,args=(jid,skus,refresh),daemon=True).start()
+        threading.Thread(target=self.run,args=(jid,skus,refresh,position),daemon=True).start()
         return jid
 
-    def run(self, jid, skus, refresh):
+    def run(self, jid, skus, refresh, position=None):
         errors = []
+        occupancy = None
+        fresh = set()
         try:
             key = self.publisher_key()
             if skus is None:
@@ -137,6 +151,23 @@ class SharedSales:
                 skus = sorted(set(skus))
             with self.lock:
                 self.jobs[jid].update(total=len(skus),atual=0)
+            if refresh and position is not None:
+                started = datetime.now().astimezone().isoformat()
+                client = self.insights.client_factory()
+                for index,sku in enumerate(skus):
+                    if self.stop.is_set():break
+                    with self.lock:self.jobs[jid]['mensagem'] = f'Estoque da caixa: {index+1}/{len(skus)} · {sku}'
+                    try:
+                        self.insights.load_product(client,sku)
+                        fresh.add(sku)
+                    except (Exception,SystemExit) as exc:
+                        errors.append(f'Estoque de {sku}: {exc}')
+                if fresh == set(skus) and not self.stop.is_set():
+                    try:
+                        # A RPC grava somente unidades; localizacao, operador, datas de movimento e ERP nao mudam.
+                        occupancy = self.occupancy.publish(position,skus,started)
+                    except (Exception,SystemExit) as exc:errors.append(str(exc))
+                else:errors.append('Ocupacao anterior preservada: a consulta de estoque ficou incompleta.')
             if refresh and key:
                 client = self.insights.client_factory()
                 start, end = '2000-01-01', date.today().isoformat()
@@ -146,7 +177,8 @@ class SharedSales:
                     with self.lock:
                         self.jobs[jid]['mensagem'] = f'Logs de estoque: {index+1}/{len(skus)} · {sku}'
                     try:
-                        self.insights.load_product(client,sku)
+                        if position is None:self.insights.load_product(client,sku)
+                        elif sku not in fresh:continue
                         with self.insights.connect() as db:
                             product = json.loads(db.execute('SELECT data FROM products WHERE sku=?',(sku,)).fetchone()[0])
                         rows = fetch_movements(client,product['id'],start,end)
@@ -172,6 +204,7 @@ class SharedSales:
             errors.append(str(exc))
         finally:
             data = self.cache((skus or [])[:150])
+            if occupancy:data['ocupacao'] = occupancy
             with self.lock:
                 self.jobs[jid].update(status='concluido',mensagem='Atualizacao finalizada',erros=errors,dados=data)
                 self.busy = False

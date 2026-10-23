@@ -39,7 +39,7 @@ USER_DATA_DIR = pathlib.Path(os.getenv("HL_COORDENADAS_DATA_DIR") or (
 APP_DIR = str(BUNDLE_DIR)
 HTML_APP = "HL_COORDENADAS_v7.html"
 PORTA = 8766
-VERSAO_PONTE = "7.0"
+VERSAO_PONTE = "7.1"
 DELAY_LOTE_SEG = 0.6
 SYNC_LOG_DIR = str(USER_DATA_DIR / "output")
 AUDIT_DB = USER_DATA_DIR / "auditoria.sqlite3"
@@ -883,7 +883,7 @@ class Handler(BaseHTTPRequestHandler):
       if not skus:
         return json_response(self, {'ok': True, **shared_sales.cache([])})
       try:
-        jid = shared_sales.start(skus, action == 'atualizar', action == 'continuar')
+        jid = shared_sales.start(skus, action == 'atualizar', action == 'continuar', data.get('posicao'))
         return json_response(self, {'ok': True, 'job_id': jid})
       except ValueError as exc:
         return json_response(self, {'ok': False, 'erro': str(exc)}, 409)

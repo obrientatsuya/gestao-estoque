@@ -12,9 +12,13 @@ ORIGIN = 'http://127.0.0.1:18866'
 STAMP = '2026-10-22T14:30:00-03:00'
 NAMES = ['Conector de engate rapido','Sensor de temperatura','Correia de transmissao','Interruptor bipolar','Rolamento blindado','Terminal de conexao']
 STOCK = []
+QUANTITIES=[1000,200,650,250,200,100,150,50,70,30,20,10,100,30,150,30,70,20,50,10,30,5,20,2,10,5,8,2,6,1,4,0,2,0,0,None]
+JOBS={}
+BOX_ACTIONS=[]
 for index in range(36):
     STOCK.append({'sku':f'HL-{2048+index}','setor':f'{index//12+1}S','prateleira':f'P{index//6%2+1}',
                   'caixa':f'C{index//2%3+1}','lado':'','andar':'','nivel':['pouca','media','quase'][index%3],
+                  'unidades_estoque':QUANTITIES[index],'unidades_atualizadas_em':STAMP if QUANTITIES[index] is not None else None,
                   'operador':['ANDERSON','LUIZ'][index%2],'atualizado_em':STAMP,'sincronizado_erp_em':STAMP})
 STRUCTURE = [{'setor':str(s),'prateleira':str(p),'caixas':4,'capacidade_sku':8} for s in range(1,4) for p in range(1,3)]
 SUMMARIES = [{'sku':r['sku'],'vendas':(37-i)*3 if i<30 else 0,'unidades':(37-i)*4 if i<30 else 0,
@@ -94,6 +98,8 @@ class Handler(BaseHTTPRequestHandler):
         if path=='/consultar':return self.send({'encontrado':True,'sku':q.get('sku',['HL-2048'])[0],'descricao':NAMES[0],'localizacao':'1S-P1C1','id':1})
         if path=='/sales-summary':return self.send({'ok':True,'itens':SUMMARIES})
         if path=='/sales-sync':return self.send({'ok':True,'ativo':False,'publicador':False})
+        if path=='/box-insights-job':return self.send({'ok':True,**JOBS[q['id'][0]]})
+        if path=='/__demo_state':return self.send({'acoes':BOX_ACTIONS,'estoque':STOCK})
         if path=='/api/settings':return self.send({'watch_dir':'Desktop/Notas fiscais','printer':'Impressora de etiquetas','printers':['Impressora de etiquetas'],'operators':[{'name':'Anderson'},{'name':'Luiz'}]})
         if path=='/api/notes':return self.send({'notes':[NOTE,{**NOTE,'id':'demo2','number':'000129','filename':'Recebimento_pendente.pdf','progress':0}]})
         if path.startswith('/api/notes/') and '/pages/' in path:return self.send(page_image(),mime='image/png')
@@ -105,11 +111,23 @@ class Handler(BaseHTTPRequestHandler):
         path=urlparse(self.path).path
         payload=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or b'{}')
         if path=='/box-insights':
+            BOX_ACTIONS.append(payload.get('acao','cache'))
             items=[]
+            saved=[]
             for sku in payload.get('skus',[]):
                 for i,r in enumerate(STOCK):
-                    if r['sku']==sku:items.append({'sku':sku,'nome':NAMES[i%6],'disponivel':i%12,'vendas':SUMMARIES[i]['vendas'],'unidades_vendidas':SUMMARIES[i]['unidades'],'historico_completo':True,'em_cache':True,'historico':[],'vendas_atualizado_em':STAMP})
-            return self.send({'ok':True,'itens':items,'consulta_pendente':False,'historico_completo':True})
+                    if r['sku']==sku:
+                        if payload.get('acao')=='atualizar':
+                            r['unidades_estoque']=(r['unidades_estoque'] or 0)+7
+                            r['unidades_atualizadas_em']='2026-10-22T16:30:00-03:00'
+                            saved.append({key:r[key] for key in ('sku','unidades_estoque','unidades_atualizadas_em')})
+                        items.append({'sku':sku,'nome':NAMES[i%6],'disponivel':r['unidades_estoque'],'vendas':SUMMARIES[i]['vendas'],'unidades_vendidas':SUMMARIES[i]['unidades'],'historico_completo':True,'em_cache':True,'historico':[],'vendas_atualizado_em':STAMP})
+            result={'ok':True,'itens':items,'consulta_pendente':False,'historico_completo':True}
+            if saved:
+                result['ocupacao']={'salvo':True,'posicao':payload['posicao'],'itens':saved,'unidades':sum(r['unidades_estoque'] for r in saved)}
+                JOBS['demo-update']={'status':'concluido','mensagem':'Consulta finalizada','erros':[],'dados':result}
+                return self.send({'ok':True,'job_id':'demo-update'})
+            return self.send(result)
         if '/items/' in path:
             item=next(i for i in ITEMS if i['id']==int(path.rsplit('/',1)[1]))
             if payload.get('action')=='count':item['counted']=payload['value']

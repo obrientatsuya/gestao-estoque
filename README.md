@@ -1,7 +1,7 @@
 # HL Coordenadas
 
 Sistema interno de localizacao de estoque e conferencia digital de notas fiscais.
-Os dois modulos rodam no mesmo processo Windows e abrem no navegador. V7.
+Os dois modulos rodam no mesmo processo Windows e abrem no navegador. V7.1.
 
 ![Coordenadas no tema claro](docs/screenshots/coordenadas-claro.jpg)
 
@@ -24,7 +24,8 @@ As duas incluem Coordenadas e Conferencia NFe. Use somente uma por PC.
 - **Leitor**: consulta o resumo compartilhado sem login no Tiny; nao inclui a chave do publicador e ignora chaves de publicacao locais antigas.
 
 "Leitor" se refere ao resumo de vendas, nao a um bloqueio geral de edicao do estoque.
-Enviar localizacao e imprimir etiquetas continuam exigindo autorizacao Tiny propria.
+Atualizar o estoque da caixa, enviar localizacao e imprimir etiquetas exigem
+autorizacao Tiny propria. Ler unidades e vendas ja compartilhadas nao exige login Tiny.
 O Publicador nao leva access/refresh tokens de outro PC: a autorizacao acontece no destino.
 
 ### O que significa VENDAS
@@ -38,6 +39,27 @@ O mapa soma os resumos dos SKUs nas suas caixas **atuais**, nao nas caixas onde 
 na data da venda. Rankings comparativos usam caixas com resumo completo.
 Nenhuma importacao em massa comeca ao abrir o sistema. Os botoes de notas fiscais
 para calculo de vendas estao ocultos; a consulta atual usa logs de estoque.
+
+### Ocupacao por Unidades
+
+Execute uma vez [supabase_ocupacao_unidades.sql](supabase_ocupacao_unidades.sql)
+no SQL Editor do projeto. O script acrescenta dois campos e uma RPC; nao apaga
+localizacoes, operadores ou historico existente.
+
+O botao **Atualizar** da caixa consulta produtos/estoque por GET no Tiny e grava
+somente as unidades disponiveis e a data da consulta no Supabase. A publicacao
+exige estoque recente de todos os SKUs e a mesma composicao da caixa; falhas ou
+movimentacoes concorrentes preservam os valores anteriores. Nenhum campo de
+produto, custo, preco ou estoque e escrito no Tiny por essa consulta.
+
+A borda usa a soma das unidades, nao a quantidade de SKUs. A escala e relativa
+a maior caixa conhecida, nao uma porcentagem de capacidade fisica. Dados ainda
+nao consultados ficam cinza. Nos mapas, e possivel alternar unidades, SKUs e vendas.
+Vendas usam escala continua de vermelho (zero) a verde (maior valor); ocupacao usa
+o sentido inverso. Filtrar um setor nao muda a referencia global da escala.
+
+As animacoes respeitam a preferencia do sistema. **Mais > Animacoes** permite
+ativar ou desativar explicitamente, com a escolha lembrada no navegador.
 
 ## Executar o Codigo
 
@@ -78,6 +100,7 @@ multiusuario com autenticacao propria. Nao use acesso de rede irrestrito para el
 | --- | --- |
 | Localizacoes, estrutura e historico compartilhado | Supabase |
 | Resumo agregado de vendas | Supabase `resumo_vendas` |
+| Unidades por SKU e data da consulta | Supabase `estoque.unidades_estoque` / `unidades_atualizadas_em` |
 | Cache de consultas, auditoria e tokens do Leitor | `%LOCALAPPDATA%\HL_Coordenadas_V5` |
 | Dados e tokens do Publicador | `%LOCALAPPDATA%\HL_Coordenadas_V5_Publicador` |
 | Progresso da conferencia e configuracao da impressora | `%LOCALAPPDATA%\HL_Conferencia_NFe` |
@@ -115,7 +138,7 @@ autorizado. Executaveis nao sao cofres de segredos.
 
 ```powershell
 python -m unittest discover -s tests -p "test_*.py"
-node --test tests/test_count_queue.cjs
+node --test tests/test_count_queue.cjs tests/test_warehouse_metrics.cjs
 python tools/demo_server.py
 ```
 

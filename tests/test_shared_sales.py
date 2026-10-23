@@ -76,6 +76,24 @@ class TestShared(unittest.TestCase):
         self.assertFalse(self.client.calls)
         self.assertFalse(self.published)
 
+    def test_reader_box_refresh_reads_stock_but_never_logs_or_invoices(self):
+        position={'setor':'1S','prateleira':'P1','caixa':'C1'}
+        with patch.object(self.service.occupancy,'publish',return_value={'salvo':True,'unidades':8}) as publish:
+            job=self.done(self.service.start(['001'],refresh=True,position=position))
+        self.assertTrue(job['dados']['ocupacao']['salvo'])
+        publish.assert_called_once()
+        self.assertTrue(any('/estoque/' in path for path in self.client.calls))
+        self.assertFalse(any('/notas' in path or '/logs-movimentacao' in path for path in self.client.calls))
+        self.assertFalse(self.published)
+
+    def test_failed_stock_query_preserves_occupancy_without_publication(self):
+        self.client.request_json=lambda *args:(_ for _ in ()).throw(ValueError('Tiny offline'))
+        with patch.object(self.service.occupancy,'publish') as publish:
+            job=self.done(self.service.start(['001'],refresh=True,position={'setor':'1S','prateleira':'P1','caixa':'C1'}))
+        publish.assert_not_called()
+        self.assertNotIn('ocupacao',job['dados'])
+        self.assertTrue(job['erros'])
+
     def test_unknown_is_not_zero_and_old_invoice_counts_are_not_used(self):
         data=self.service.cache(['001'])
         self.assertIsNone(data['itens'][0]['vendas'])

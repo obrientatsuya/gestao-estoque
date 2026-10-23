@@ -1,11 +1,12 @@
-# V7: Decisoes e Validacao
+# V7.1: Decisoes e Validacao
 
 ## Escopo
 
-Redesign operacional dos dois modulos, sem reescrever as integracoes Tiny/Supabase.
-Endpoints externos, payloads, regras de custo/estoque/vendas, paginacao e limites
-das APIs foram preservados. As adicoes no servidor Coordenadas servem assets
-locais `/ui/*` e configuracao publica `/ui/runtime-config.js`.
+Redesign operacional dos dois modulos, preservando os clientes Tiny existentes,
+regras de custo/preco, paginacao e limites. A V7.1 acrescenta a publicacao de
+unidades no Supabase com uma RPC dedicada; os GETs de estoque existentes sao
+reutilizados sem escrita no Tiny. Os servidores tambem servem assets locais
+`/ui/*` e configuracao publica `/ui/runtime-config.js`.
 As credenciais deixaram o HTML/Python versionavel e passaram a configuracao privada.
 
 ## Interface
@@ -17,8 +18,13 @@ As credenciais deixaram o HTML/Python versionavel e passaram a configuracao priv
   caixas/prateleiras; bordas seguem a ocupacao. SETOR permanece branco sobre cor.
 - Tema claro sem gradiente escuro e tema escuro consistente nos dois modulos.
 - Versao discreta no canto, fora da marca principal.
-- Icones Lucide, foco visivel e feedback de clique/menu de 120-160 ms.
-- Animacoes desligadas quando `prefers-reduced-motion` e solicitado.
+- Icones Lucide, incluindo o mapa de vendas no menu, foco visivel, entradas
+  escalonadas de 230-320 ms, contadores de 220 ms e retorno de sucesso de 380 ms.
+- Animacoes seguem `prefers-reduced-motion` por padrao; o switch do menu permite
+  uma escolha explicita persistida, inclusive para desativar em qualquer sistema.
+- Ocupacao pela soma de unidades disponiveis, sem editor manual. Dados ausentes
+  nunca viram zero. Escalas continuas e referencia global: vendas vermelho-verde,
+  ocupacao verde-vermelho, dados parciais cinza e excluidos do ranking comparativo.
 
 Foram usadas as instrucoes locais de `revenue-centric-design` (reduzir carga
 cognitiva, encurtar tarefas, estados verdadeiros e feedback rapido) e da skill
@@ -42,9 +48,10 @@ Nao foram aplicados mecanismos de venda, urgencia ou manipulacao ao fluxo intern
 
 ## Validacao
 
-- 38 testes Python existentes com clientes simulados e SQLite temporario.
-- 5 testes Node da fila: itens diferentes, debounce, atualizacao em voo, repeticao
-  apos erro e respostas com snapshots antigos da nota completa.
+- 48 testes Python com clientes simulados e SQLite temporario, incluindo o
+  contrato da RPC, frescor, falhas parciais e GETs do perfil Leitor.
+- 14 testes Node: fila de quantidades, dados desconhecidos, deduplicacao, decimais,
+  totais por unidades e escalas lineares de vendas/ocupacao.
 - Testes visuais no Chrome com fixtures sinteticas: claro/escuro, caixas, busca,
   auditoria, mapas, autocomplete com setas, conferencia, historico e configuracoes.
 - Inspecao dos dois executaveis: perfis separados, sem access/refresh tokens
@@ -62,14 +69,14 @@ Git e pode comparar bytes com as credenciais privadas da maquina sem revela-las:
 ```powershell
 python tools/security_check.py --repo CAMINHO_DO_REPOSITORIO --private-root CAMINHO_PRIVADO
 git diff --cached --stat
-git commit -m "feat(v7): unify operational UI, local assets and safe distribution"
+git commit -m "fix(v7.1): automate unit occupancy and correct heatmap feedback"
 ```
 
 ### Hipotese de Commit
 
-`feat(v7): unify operational UI, local assets and safe distribution`
+`fix(v7.1): automate unit occupancy and correct heatmap feedback`
 
-Hipotese: uma hierarquia consistente, menos decoracao e feedback imediato reduzem
-o tempo de localizar/marcar itens sem mudar as regras do ERP. Validar em operacao
+Hipotese: unidades no lugar de niveis manuais, cores consistentes e feedback
+imediato reduzem o tempo de decidir onde armazenar itens. Validar em operacao
 com tempo por cadastro/conferencia, erros corrigidos e consultas por caixa, sem
 coletar telemetria automaticamente ou expor dados dos operadores.

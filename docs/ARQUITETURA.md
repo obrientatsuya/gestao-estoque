@@ -11,6 +11,8 @@
 | `app_edition.py` | Perfil Leitor/Publicador embutido no pacote |
 | `box_insights.py` | Cache SQLite, consultas sob demanda e agregacao existente |
 | `shared_sales.py` | Leitura/publicacao do resumo compartilhado |
+| `box_occupancy.py` | Validacao de estoque recente e publicacao limitada das unidades |
+| `ui/warehouse-metrics.js` | Totais deduplicados, dados desconhecidos e escalas continuas |
 | `enviar_localizacoes_tiny_v3.py`, `tiny_v3_auth.py` | Cliente e OAuth Tiny existentes |
 | `HL_Conferencia_NFe/` | Parser PDF, progresso SQLite, exportacao e impressao |
 | `ui/` | Tokens visuais, fontes, icones e feedback local dos dois modulos |
@@ -29,6 +31,13 @@
    que nao houve venda. Atualizar nao inicia uma importacao de notas fiscais.
 4. **Conferencia**: PDFs permanecem no PC. Itens e progresso ficam no SQLite local;
    o PDF final e gerado com as marcacoes, sem sobrescrever o documento de entrada.
+5. **Ocupacao**: somente Atualizar de uma caixa inicia GETs de produto/estoque no
+   Tiny. Todas as consultas precisam ter sucesso depois do inicio do trabalho.
+   A RPC `atualizar_ocupacao_caixa` confirma a composicao da caixa sob bloqueio de
+   linhas e rejeita uma consulta mais antiga. Ela escreve apenas unidades e data;
+   nao altera localizacao, operador, datas de movimentacao, custo ou preco.
+   O Leitor tambem pode atualizar essas unidades se tiver autorizacao Tiny local,
+   sem usar logs ou publicar vendas. Abrir uma caixa apenas le dados em cache.
 
 Nao confunda "consulta de vendas somente GET no Tiny" com "toda aplicacao somente
 leitura": cadastrar/mover/excluir um SKU no Coordenadas e alterar localizacao no
@@ -39,6 +48,10 @@ Tiny sao operacoes de escrita deliberadas, ja existentes.
 - `supabase_migracao.sql`: historico e estrutura de localizacao.
 - `supabase_resumo_vendas.sql`: tabela de agregados e RPC limitada ao resumo.
 - `supabase_chave_publicador.sql`: geracao/configuracao administrativa da chave.
+- `supabase_ocupacao_unidades.sql`: unidades por SKU e RPC SECURITY INVOKER, com
+  as permissoes/RLS existentes. Uma caixa incompleta permanece desconhecida e nao
+  entra no ranking. As cores comparam valores absolutos com a maior caixa completa,
+  de forma linear; nao inferem volume fisico a partir da quantidade.
 - Nao inserir `service_role` em HTML, runtime-config.js ou executaveis de operadores.
 - A leitura anonima do resumo foi uma decisao do fluxo interno; ela nao e privada
   para quem conhece URL/chave publica do projeto. Revisar RLS antes de uso externo.

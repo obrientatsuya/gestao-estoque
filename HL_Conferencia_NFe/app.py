@@ -33,7 +33,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = int(os.getenv("HL_CONFERENCIA_PORT", "8770"))
-APP_VERSION = "7.0"
+APP_VERSION = "7.1"
 SERVER_INSTANCE = f"{os.getpid()}-{time.time_ns()}"
 BUNDLE_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 APP_DIR = BUNDLE_ROOT

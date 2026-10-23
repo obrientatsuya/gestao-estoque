@@ -45,7 +45,7 @@ def main():
                         if process.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Servidor nao iniciou; consulte o log isolado.')
                         time.sleep(.25)
                 assert health['edicao']==edition
-                assert health['versao']=='7.0'
+                assert health['versao']=='7.1'
                 assert not health.get('token_salvo')
                 assert nfe['ok']
                 assert b'/ui/v7.css' in get(8766,'/')

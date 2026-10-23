@@ -17,8 +17,10 @@ def main():
         assert bool(profile.get('chave_publicador'))==(edition=='publicador'),'Segregacao de chave incorreta'
         public=json.loads(archive.extract('hl_public_config.json'))
         assert public.get('supabase_url') and public.get('supabase_key'),'Configuracao publica ausente'
-        for asset in ['HL_COORDENADAS_v7.html','ui\\v7.css','ui\\v7.js','conference_static\\ui\\conference-v7.css']:
+        for asset in ['HL_COORDENADAS_v7.html','ui\\v7.css','ui\\v7.js','ui\\warehouse-metrics.js','conference_static\\ui\\conference-v7.css']:
             assert asset in names,f'Asset ausente: {asset}'
+        assert b'motionToggle' in archive.extract('HL_COORDENADAS_v7.html'),'Preferencia de animacoes ausente'
+        assert b'v7.1' in archive.extract('HL_COORDENADAS_v7.html'),'Interface desatualizada'
         if edition=='leitor':
             private=json.loads((ROOT/'configuracao_privada/edicao_publicador.json').read_text(encoding='utf-8'))
             key=private['chave_publicador'].encode()

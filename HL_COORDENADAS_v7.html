@@ -1637,9 +1637,10 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
 .heatmap-mode-switch select { background:var(--preto3); color:var(--branco); border:1px solid var(--cinza4); border-radius:6px; padding:8px; font:inherit; }
 #salesMapStatus { color:var(--cinza2); font-size:12px; overflow-wrap:anywhere; }
 </style>
-<link rel="stylesheet" href="/ui/v7.css">
+<link rel="stylesheet" href="/ui/v7.css?v=7.1">
 <script src="/ui/vendor/lucide.js" defer></script>
-<script src="/ui/v7.js" defer></script>
+<script src="/ui/warehouse-metrics.js?v=7.1"></script>
+<script src="/ui/v7.js?v=7.1" defer></script>
 </head>
 <body>
 
@@ -1668,7 +1669,7 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
         <a class="btn-header mobile-module" href="http://127.0.0.1:8770/" target="_blank" rel="noopener">Conferencia NFe</a>
         <button class="btn-header mobile-module" id="btnAuditoriaMobile">Auditoria</button>
         <a class="btn-header" id="btnHeatmap" href="/?view=heatmap" target="_blank" rel="noopener">MAPA DE CALOR</a>
-        <a class="btn-header" href="/?view=sales" target="_blank" rel="noopener">MAPA DE VENDAS</a>
+        <a class="btn-header" id="btnSalesMap" href="/?view=sales" target="_blank" rel="noopener">MAPA DE VENDAS</a>
         <button class="btn-header" id="btnHistorico">Historico rapido</button>
         <button class="btn-header" id="btnSyncErp" title="Le as posicoes atuais do Supabase e atualiza somente o Tiny. Nao apaga nem substitui dados no Supabase.">Atualizar Tiny</button>
         <button class="btn-header" id="btnLogTiny">Log Tiny</button>
@@ -1677,6 +1678,7 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
         <button class="btn-header" id="btnAutorizarTiny">Autorizar Tiny</button>
         <button class="btn-header" id="btnBackupHeader">Baixar Backup</button>
         <button class="btn-header" id="btnEstrutura">Gerenciar Estrutura</button>
+        <label class="motion-option"><span>Animacoes</span><input id="motionToggle" type="checkbox" role="switch" aria-label="Animacoes"></label>
       </div>
     </details>
   </div>
@@ -1724,7 +1726,8 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
     </div>
   </div>
   <div class="heatmap-shell">
-    <div class="heatmap-mode-switch"><select id="heatmapMetrica" aria-label="Tipo de mapa"><option value="ocupacao">Ocupacao por caixa</option><option value="vendas">Vendas por caixa</option></select><span id="salesMapStatus" role="status"></span></div>
+    <div class="heatmap-mode-switch"><select id="heatmapMetrica" aria-label="Tipo de mapa"><option value="ocupacao">Ocupacao por unidades</option><option value="skus">Quantidade de SKUs</option><option value="vendas">Vendas por caixa</option></select><span id="salesMapStatus" role="status"></span></div>
+    <div class="heatmap-scale" id="heatmapColorScale"><span>0</span><i></i><span id="heatmapScaleMax"></span></div>
     <div id="heatmapStats" class="heatmap-stats"></div>
     <div class="heatmap-rankings">
       <div class="heatmap-ranking"><h2 id="heatmapSetoresTitulo">Setores com mais SKUs</h2><div id="heatmapSetores" class="heatmap-rank-list"></div></div>
@@ -1857,15 +1860,7 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
             <option value="D">D</option>
           </select>
         </div>
-        <div>
-          <label for="nivelInput">Ocupacao</label>
-          <select id="nivelInput" class="select-nivel">
-            <option value="pouca" class="opt-pouca">Pouca</option>
-            <option value="media" class="opt-media">Media</option>
-            <option value="quase" class="opt-quase">Quase cheia</option>
-            <option value="vazio" class="opt-vazio">Vazia</option>
-          </select>
-        </div>
+        <input type="hidden" id="nivelInput" value="pouca">
       </div>
 
       <button class="btn-editar-sku" id="btnEditarSku" style="display:none;">Editar codigo SKU</button>
@@ -1899,14 +1894,15 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
         <div class="leg-dot" style="background:#1e1e1e;border:1px solid #333;"></div> Vazia
       </div>
       <div class="leg-item leg-filtro" data-nivel="pouca" onclick="toggleFiltroNivel('pouca')" title="Clique para filtrar caixas com pouca ocupação">
-        <div class="leg-dot" style="background:#22c55e;"></div> Pouca
+        <div class="leg-dot" style="background:#22c55e;"></div> Baixa
       </div>
       <div class="leg-item leg-filtro" data-nivel="media" onclick="toggleFiltroNivel('media')" title="Clique para filtrar caixas com ocupação média">
         <div class="leg-dot" style="background:#f59e0b;"></div> Media
       </div>
       <div class="leg-item leg-filtro" data-nivel="quase" onclick="toggleFiltroNivel('quase')" title="Clique para filtrar caixas quase cheias">
-        <div class="leg-dot" style="background:var(--erro);"></div> Quase cheia
+        <div class="leg-dot" style="background:var(--erro);"></div> Alta
       </div>
+      <div class="leg-item leg-filtro" data-nivel="desconhecida" onclick="toggleFiltroNivel('desconhecida')"><div class="leg-dot" style="background:var(--cinza3)"></div> Nao consultada</div>
       <div class="leg-sep"></div>
       <div class="leg-item leg-filtro leg-match-sku" id="legMatchSku" onclick="toggleFiltroMatchSku()" title="Clique para realçar caixas com SKU buscado">
         <div class="leg-dot" style="background:#22c55e;border:2px solid #4ade80;"></div> Match SKU
@@ -3529,6 +3525,7 @@ let painelDados = [];
 let painelExpandidoTudo = false;
 let drawerAberto = null;   // { el, wrap, caixaNome, cel, ladoKey }
 let painelZoom = 1.0;
+let ocupacaoReferencia = 1;
 const skusSelecionadosPainel = new Set();
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
@@ -3537,9 +3534,10 @@ const ZOOM_STEP = 0.1;
 // Niveis de ocupacao: mapeamento
 const NIVEL_INFO = {
   vazio:  { label: "Vazia",       cls: "nivel-vazio" },
-  pouca:  { label: "Pouca",       cls: "nivel-pouca" },
+  desconhecida: {label:"Nao consultada",cls:"nivel-desconhecida"},
+  pouca:  { label: "Baixa",       cls: "nivel-pouca" },
   media:  { label: "Media",       cls: "nivel-media" },
-  quase:  { label: "Quase cheia", cls: "nivel-quase" }
+  quase:  { label: "Alta", cls: "nivel-quase" }
 };
 
 function parseSortKey(v) { return parseInt(String(v).replace(/\D/g,'')) || 0; }
@@ -3584,13 +3582,42 @@ function caixasEstrutura(setorRaw, pratRaw) {
   return typeof v === "object" ? (v.caixas || 0) : v;
 }
 
-// Nível dominante de uma caixa/lado (o mais alto dentre os SKUs)
+// Ocupacao relativa pela soma das unidades consultadas.
 function nivelDominante(items) {
-  const ord = ["quase","media","pouca","vazio"];
-  for (const n of ord) {
-    if (items.some(r => (r.nivel || "pouca") === n)) return n;
-  }
-  return "vazio";
+  const q = WarehouseMetrics.inventory(items);
+  return WarehouseMetrics.level(q.complete?q.units:null,ocupacaoReferencia);
+}
+
+function pintarOcupacaoCaixas() {
+  const grupos = WarehouseMetrics.boxes(painelDados);
+  ocupacaoReferencia = WarehouseMetrics.reference(grupos);
+  const light = document.documentElement.dataset.theme === 'light';
+  document.querySelectorAll('.caixa-cel').forEach(cell=>{
+    const q = grupos.get(WarehouseMetrics.key(cell.dataset)) || WarehouseMetrics.inventory([]);
+    const level = WarehouseMetrics.level(q.complete?q.units:null,ocupacaoReferencia);
+    cell.dataset.nivel = level;
+    cell.dataset.occupancy = 'true';
+    cell.style.setProperty('--occupancy-color',q.complete&&q.total?WarehouseMetrics.color(q.units,ocupacaoReferencia,false,light).border:'var(--cinza4)');
+    const count = cell.querySelector('.caixa-unidades');
+    if(count)count.textContent=q.complete?`${numeroInsights(q.units)} un.`:'— un.';
+    cell.title=`${cell.dataset.setor}-${cell.dataset.prateleira}${cell.dataset.caixa} · ${q.total} SKU(s) · ${q.complete?numeroInsights(q.units)+' unidades disponiveis':q.known+'/'+q.total+' SKUs com estoque consultado'}\nEscala relativa por unidades; referencia: ${numeroInsights(ocupacaoReferencia)} un.`;
+  });
+  const setores = new Map();
+  painelDados.forEach(row=>{
+    if(!setores.has(row.setor))setores.set(row.setor,[]);
+    setores.get(row.setor).push(row);
+  });
+  const totais = new Map([...setores].map(([setor,rows])=>[setor,WarehouseMetrics.inventory(rows)]));
+  const referencia = WarehouseMetrics.reference(totais);
+  document.querySelectorAll('.setor-bloco').forEach(bloco=>{
+    const q=totais.get(bloco.dataset.setorKey)||WarehouseMetrics.inventory([]);
+    const bar=bloco.querySelector('.setor-ocp-bar'),fill=bar?.firstElementChild;
+    if(!fill)return;
+    fill.style.width=q.complete?`${WarehouseMetrics.ratio(q.units,referencia)*100}%`:'0%';
+    fill.style.background=q.complete?WarehouseMetrics.color(q.units,referencia,false,light).border:'var(--cinza4)';
+    bar.title=q.complete?`${numeroInsights(q.units)} unidades; escala relativa ao setor com ${numeroInsights(referencia)} un.`:`Estoque parcial: ${q.known}/${q.total} SKUs consultados`;
+  });
+  aplicarFiltroNivelVisual();
 }
 
 // Cor do nível para a barra lateral do setor
@@ -3648,6 +3675,7 @@ function renderPainel(rows, append) {
   if (!wrap) return;
   if (!append) wrap.innerHTML = "";
   drawerAberto = null;
+  ocupacaoReferencia = WarehouseMetrics.reference(WarehouseMetrics.boxes(rows));
 
   const filtroSku = (el("painelFiltroSku")?.value || "").trim().toUpperCase();
   const rowsFiltrados = rows;
@@ -3669,29 +3697,11 @@ function renderPainel(rows, append) {
       const pratOrdenadas = Object.keys(pratObj).sort((a,b) => parseSortKey(a) - parseSortKey(b));
 
       let skusSetor = 0;
-      let ladosTotais = 0;
       pratOrdenadas.forEach(p =>
         Object.values(pratObj[p]).forEach(caixaLados => {
-          Object.values(caixaLados).forEach(arr => { skusSetor += arr.length; ladosTotais++; });
+          Object.values(caixaLados).forEach(arr => { skusSetor += arr.length; });
         })
       );
-
-      // Barra de ocupação do setor: baseada em nível médio
-      let setorPct = 0, setorPctCls = "";
-      if (ladosTotais > 0) {
-        let somaNivel = 0;
-        pratOrdenadas.forEach(p =>
-          Object.values(pratObj[p]).forEach(caixaLados =>
-            Object.values(caixaLados).forEach(arr => {
-              const n = nivelDominante(arr);
-              somaNivel += n === "quase" ? 3 : n === "media" ? 2 : n === "pouca" ? 1 : 0;
-            })
-          )
-        );
-        const media = somaNivel / ladosTotais;
-        setorPct = Math.round((media / 3) * 100);
-        setorPctCls = media >= 2.5 ? "cheio" : media >= 1.5 ? "quase" : "";
-      }
 
       let caixasSetor = 0;
       pratOrdenadas.forEach(p => caixasSetor += Object.keys(pratObj[p]).length);
@@ -3715,7 +3725,7 @@ function renderPainel(rows, append) {
             <span class="setor-badge">${skusSetor} SKU(s)</span>
           </div>
         </div>
-        <div class="setor-ocp-bar"><div class="setor-ocp-fill ${setorPctCls}" style="width:${setorPct}%"></div></div>
+        <div class="setor-ocp-bar"><div class="setor-ocp-fill" style="width:0%"></div></div>
         <div class="setor-corpo"></div>
       `;
 
@@ -3805,51 +3815,10 @@ function renderPainel(rows, append) {
           const caixaRotulo = `${setor}-${pratKey}${caixaNome}`;
           topo.innerHTML = `<span class="caixa-cel-nome ${corNomeCls}">${caixaRotulo}</span>`;
 
-          // Área de lados
-          const ladosDiv = document.createElement("div");
-          ladosDiv.className = "caixa-lados";
-
-          if (vazia) {
-            // Caixa sem dados: mostra faixa única vazia
-            const faixa = document.createElement("div");
-            faixa.className = "lado-faixa";
-            faixa.innerHTML = `
-              <span class="lado-nivel-bar nivel-vazio"></span>
-              <span class="lado-nivel-txt">—</span>
-            `;
-            ladosDiv.appendChild(faixa);
-          } else if (simples) {
-            // Só lado A: faixa simples com barra de nível grande
-            const ladoReal = ladosPresentes[0] || "";
-            const items = ladosObj[ladoReal] || [];
-            const nivel = nivelDominante(items);
-            const nInfo = NIVEL_INFO[nivel] || NIVEL_INFO.vazio;
-            const faixa = document.createElement("div");
-            faixa.className = "lado-faixa";
-            faixa.innerHTML = `
-              <span class="lado-nivel-bar ${nInfo.cls}"></span>
-              <span class="lado-nivel-txt">${items.length} SKU</span>
-            `;
-            ladosDiv.appendChild(faixa);
-          } else {
-            // Múltiplos lados: faixas empilhadas A em cima
-            ladosPresentes.forEach(lado => {
-              const items = ladosObj[lado] || [];
-              const nivel = nivelDominante(items);
-              const nInfo = NIVEL_INFO[nivel] || NIVEL_INFO.vazio;
-              const faixa = document.createElement("div");
-              faixa.className = "lado-faixa";
-              faixa.innerHTML = `
-                <span class="lado-letra">${labelLado(lado)}</span>
-                <span class="lado-nivel-bar ${nInfo.cls}"></span>
-                <span class="lado-nivel-txt">${items.length}</span>
-              `;
-              ladosDiv.appendChild(faixa);
-            });
-          }
-
           cel.appendChild(topo);
-          cel.appendChild(ladosDiv);
+          const unidades = document.createElement('span');
+          unidades.className = 'caixa-unidades';
+          cel.appendChild(unidades);
 
           cel.addEventListener("click", ev => {
             ev.stopPropagation();
@@ -3882,14 +3851,14 @@ function renderPainel(rows, append) {
   });
 
   // Re-aplicar filtros de nível e match-sku após renderizar
-  aplicarFiltroNivelVisual();
+  pintarOcupacaoCaixas();
   if (filtroMatchSkuAtivo) {
     const wrapMain = document.getElementById("painelZoomWrap");
     if (wrapMain) wrapMain.classList.add("painel-match-sku-ativo");
   }
 }
 
-function montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPresentes, modoEdit) {
+function montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPresentes) {
   const posBase = `${setor}-${pratKey}${caixaNome}`;
   const totalSkusCaixa = ladosPresentes.reduce((s,l) => s + (ladosObj[l] || []).length, 0);
 
@@ -3926,7 +3895,7 @@ function montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPrese
           }).join("");
 
       return `
-        <div class="drawer-lado-secao">
+        <div class="drawer-lado-secao" data-lado="${escapeHtmlAttr(lado)}">
           <div class="drawer-lado-header">
             <span class="drawer-lado-letra">LADO ${labelLado(lado)}</span>
             <span class="drawer-lado-nivel ${nInfo.cls}">${nInfo.label}</span>
@@ -3937,120 +3906,24 @@ function montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPrese
     }).join("");
   }
 
-  let editHtml = "";
-  if (modoEdit) {
-    if (ladosPresentes.length === 0) {
-      editHtml = `<div style="font-size:11px;color:var(--cinza3);margin-top:8px;padding:8px;border:1px dashed var(--cinza4);border-radius:6px;">Caixa vazia &mdash; cadastre SKUs para definir ocupacao.</div>`;
-    } else {
-      const safeId = posBase.replace(/[^a-z0-9]/gi, '_');
-      const ladasRows = ladosPresentes.map(lado => {
-        const items = ladosObj[lado] || [];
-        const nivelAtual = nivelDominante(items);
-        return `<div class="drawer-edit-lado-row">
-          <span class="drawer-edit-lado-tag">Lado ${labelLado(lado)}</span>
-          <select class="drawer-edit-select opt-sel-${nivelAtual}"
-                  data-lado="${lado}"
-                  data-setor="${setor}" data-prat="${pratKey}" data-caixa="${caixaNome}"
-                  onchange="this.className='drawer-edit-select opt-sel-'+this.value">
-            <option value="pouca" ${nivelAtual==='pouca'?'selected':''}>Pouca</option>
-            <option value="media" ${nivelAtual==='media'?'selected':''}>Media</option>
-            <option value="quase" ${nivelAtual==='quase'?'selected':''}>Quase cheia</option>
-            <option value="vazio" ${nivelAtual==='vazio'?'selected':''}>Vazia</option>
-          </select>
-        </div>`;
-      }).join("");
-
-      editHtml = `<div class="drawer-edit-bar">
-        <span class="drawer-edit-label">Editar ocupacao</span>
-        ${ladasRows}
-        <div style="display:flex;gap:6px;width:100%;margin-top:4px;align-items:center;">
-          <button class="drawer-edit-btn" onclick="salvarOcupacaoCaixa(this)">Salvar</button>
-          <span class="drawer-edit-msg" id="drawerEditMsg_${safeId}"></span>
-        </div>
-      </div>`;
-    }
-  }
-
-  const editBadge = modoEdit
-    ? `<span class="drawer-badge drawer-edit-hint ativo" onclick="toggleDrawerEdit()" title="Fechar editor">✏ Editando — clique para fechar</span>`
-    : `<span class="drawer-badge drawer-edit-hint" onclick="toggleDrawerEdit()" title="Editar ocupação desta caixa">✏ Editar ocupação</span>`;
+  const units = WarehouseMetrics.inventory(Object.values(ladosObj).flat());
 
   return `
     <div class="drawer-cabecalho">
       <span class="drawer-titulo">${posBase}</span>
       <div class="drawer-badges">
         <span class="drawer-badge">${totalSkusCaixa} SKU(s) total</span>
-        ${editBadge}
+        <span class="drawer-badge drawer-unidades">${units.complete?numeroInsights(units.units)+' un.':'Unidades nao consultadas'}</span>
       </div>
       <div class="drawer-insights-toolbar">
         <span class="box-insights-meta"></span>
         <span class="box-insights-status" role="status">Lendo cache local...</span>
         <span class="box-insights-error"></span>
-        <button class="btn-header insight-refresh" title="Atualizar resumo de vendas">Atualizar</button>
+        <button class="btn-header insight-refresh" title="Consultar estoque e atualizar unidades compartilhadas">Atualizar</button>
       </div>
     </div>
     ${secoesHtml}
-    ${editHtml}
   `;
-}
-
-async function salvarOcupacaoCaixa(btn) {
-  const bar = btn.closest(".drawer-edit-bar");
-  const selects = bar.querySelectorAll(".drawer-edit-select");
-  const msgEl = bar.querySelector(".drawer-edit-msg");
-  btn.disabled = true;
-  btn.textContent = "Salvando...";
-  msgEl.className = "drawer-edit-msg";
-  msgEl.textContent = "";
-
-  try {
-    for (const sel of selects) {
-      const { setor, prat, caixa, lado } = sel.dataset;
-      const novoNivel = sel.value;
-      const params = new URLSearchParams({
-        setor: `eq.${setor}`,
-        prateleira: `eq.${prat}`,
-        caixa: `eq.${caixa}`,
-        lado: `eq.${lado}`
-      });
-      const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/${TABELA}?${params}`,
-        {
-          method: "PATCH",
-          headers: { ...headers, "Prefer": "return=minimal" },
-          body: JSON.stringify({ nivel: novoNivel })
-        }
-      );
-      if (!r.ok) throw new Error(await r.text() || r.statusText);
-    }
-
-    msgEl.textContent = "Salvo!";
-    msgEl.className = "drawer-edit-msg ok";
-    btn.textContent = "Salvo";
-
-    setTimeout(() => carregarPainelSetores(), 700);
-  } catch(e) {
-    msgEl.textContent = "Erro: " + e.message;
-    msgEl.className = "drawer-edit-msg erro";
-    btn.disabled = false;
-    btn.textContent = "Salvar";
-  }
-}
-
-// Chamada pelo badge "✏ Editar ocupação" dentro do drawer
-function toggleDrawerEdit() {
-  if (!drawerAberto) return;
-  const { el: drawer, caixaNome, _andar, _setor, _pratKey, _ladosObj, _ladosPresentes } = drawerAberto;
-  const insightsToolbar = drawer.querySelector('.drawer-insights-toolbar');
-  drawerAberto.modoEdit = !drawerAberto.modoEdit;
-  drawer.innerHTML = montarHtmlDrawer(
-    caixaNome,
-    drawerAberto._andar, drawerAberto._setor, drawerAberto._pratKey,
-    drawerAberto._ladosObj, drawerAberto._ladosPresentes,
-    drawerAberto.modoEdit
-  );
-  if (insightsToolbar) drawer.querySelector('.drawer-insights-toolbar').replaceWith(insightsToolbar);
-  if (drawer._insightData) renderInsightsLinhas(drawer, drawer._insightData);
 }
 
 function abrirDrawerCaixa(cel, drawer, drawerWrap, caixaNome, pratKey, pratNum, andar, setor, ladosObj, ladosPresentes) {
@@ -4070,10 +3943,11 @@ function abrirDrawerCaixa(cel, drawer, drawerWrap, caixaNome, pratKey, pratNum, 
   }
 
   cel.classList.add("expandida");
-  drawer.innerHTML = montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPresentes, false);
+  drawer.innerHTML = montarHtmlDrawer(caixaNome, andar, setor, pratKey, ladosObj, ladosPresentes);
   drawerWrap.classList.add("aberto");
+  window.HL_UI?.reveal(drawer);
   drawerAberto = {
-    el: drawer, wrap: drawerWrap, caixaNome, cel, modoEdit: false,
+    el: drawer, wrap: drawerWrap, caixaNome, cel,
     _andar: andar, _setor: setor, _pratKey: pratKey,
     _ladosObj: ladosObj, _ladosPresentes: ladosPresentes
   };
@@ -4246,6 +4120,7 @@ document.addEventListener("click", ev => {
 
 function toggleSetor(blocoDiv) {
   blocoDiv.classList.toggle("expandido");
+  if(blocoDiv.classList.contains('expandido'))window.HL_UI?.reveal(blocoDiv.querySelector('.setor-corpo'));
   if (drawerAberto) {
     drawerAberto.wrap.classList.remove("aberto");
     if (drawerAberto.cel) drawerAberto.cel.classList.remove("expandida");
@@ -4745,7 +4620,10 @@ function renderInsightsLinhas(host, data) {
     nome.textContent = p.nome || p.sku;
     nome.title = p.nome || p.sku;
     const estoque = row.querySelector('.drawer-sku-stock');
-    estoque.querySelector('strong').textContent = p.disponivel == null ? '—' : numeroInsights(p.disponivel);
+    const figure=estoque.querySelector('strong');
+    if(p.disponivel==null)figure.textContent='—';
+    else if(window.HL_UI)window.HL_UI.number(figure,p.disponivel,numeroInsights);
+    else figure.textContent=numeroInsights(p.disponivel);
     estoque.classList.toggle('zero-stock', p.disponivel === 0);
     const vendas = row.querySelector('.drawer-sku-sales');
     vendas.querySelector('strong').textContent = p.vendas == null ? '—' : (p.historico_completo ? '' : '≥') + p.vendas;
@@ -4753,8 +4631,25 @@ function renderInsightsLinhas(host, data) {
   });
 }
 
+function integrarOcupacao(data) {
+  const saved=data.ocupacao;
+  if(!saved?.salvo)return;
+  const bySku=new Map(saved.itens.map(row=>[row.sku,row]));
+  for(const list of [painelDados,dadosCache,heatmapDados])for(const row of list){
+    const next=bySku.get(row.sku);
+    if(next&&WarehouseMetrics.key(row)===WarehouseMetrics.key(saved.posicao)&&(!row.unidades_atualizadas_em||row.unidades_atualizadas_em<=next.unidades_atualizadas_em)){
+      row.unidades_estoque=next.unidades_estoque;
+      row.unidades_atualizadas_em=next.unidades_atualizadas_em;
+    }
+  }
+  pintarOcupacaoCaixas();
+  if(MODO_HEATMAP)renderHeatmap(heatmapDados,true);
+}
+
 async function abrirInsightsCaixa(host, posicao, skus, inline = false) {
   skus = [...new Set(skus.filter(Boolean))];
+  const match=posicao.match(/^(\d+S)-(P\d+)(C\d+)$/);
+  const position=match?{setor:match[1],prateleira:match[2],caixa:match[3]}:null;
   const token = {};
   host._insightToken = token;
   const atual = () => host.isConnected && host._insightToken === token && host.querySelector(inline ? '.drawer-insights-toolbar' : '.box-insights');
@@ -4771,9 +4666,18 @@ async function abrirInsightsCaixa(host, posicao, skus, inline = false) {
   const buttons = (inline ? host.querySelector('.drawer-insights-toolbar') : host).querySelectorAll('button');
   const show = data => {
     if (!atual()) return;
+    integrarOcupacao(data);
     if (inline) {
       host._insightData = data;
       renderInsightsLinhas(host, data);
+      if(data.ocupacao?.salvo){
+        host.querySelector('.drawer-unidades').textContent=`${numeroInsights(data.ocupacao.unidades)} un.`;
+        host.querySelectorAll('.drawer-lado-secao').forEach(section=>{
+          const info=NIVEL_INFO[nivelDominante(drawerAberto?._ladosObj[section.dataset.lado]||[])];
+          const badge=section.querySelector('.drawer-lado-nivel');
+          badge.textContent=info.label;badge.className='drawer-lado-nivel '+info.cls;
+        });
+      }
     } else content.innerHTML = renderInsightsTabela(data);
     const meta = host.querySelector('.box-insights-meta');
     meta.textContent = 'Vendas · resumo compartilhado';
@@ -4781,7 +4685,8 @@ async function abrirInsightsCaixa(host, posicao, skus, inline = false) {
     if (data.erro_compartilhado) error.textContent = data.erro_compartilhado;
   };
   const api = async acao => {
-    const r = await fetch(erpUrl('/box-insights'), {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({skus, acao})});
+    if(acao==='atualizar'&&!position)throw new Error('Coordenada da caixa invalida.');
+    const r = await fetch(erpUrl('/box-insights'), {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({skus, acao,...(acao==='atualizar'?{posicao:position}:{})})});
     const data = await r.json();
     if (!r.ok || !data.ok) throw new Error(data.erro || 'Falha ao consultar caixa');
     return data;
@@ -4804,7 +4709,8 @@ async function abrirInsightsCaixa(host, posicao, skus, inline = false) {
         if (job.status === 'concluido') {
           show(job.dados);
           error.textContent = (job.erros || []).join(' | ');
-          status.textContent = '';
+          status.textContent = job.dados.ocupacao?.salvo?`${numeroInsights(job.dados.ocupacao.unidades)} un. salvas`:'';
+          if(job.dados.ocupacao?.salvo)window.HL_UI?.success(host);
           break;
         }
       }
@@ -4847,6 +4753,7 @@ function caixasParaHeatmap(rows) {
           caixa,
           posicao: `${setor}-${prateleira}${caixa}`,
           quantidade: itens.length,
+          estoque: WarehouseMetrics.inventory(itens),
           vendas: [...new Set(itens.map(r => String(r.sku).toUpperCase()))].reduce((n,sku) => n + (heatmapVendas.get(sku)?.vendas || 0), 0),
           conhecidas: [...new Set(itens.map(r => String(r.sku).toUpperCase()))].filter(sku => heatmapVendas.has(sku)).length,
           completa: itens.length > 0 && itens.every(r => heatmapVendas.has(String(r.sku).toUpperCase()))
@@ -4874,9 +4781,13 @@ function renderMapaCaixasHeatmap(caixas, filtroSetor) {
     return;
   }
   const vendas = mapaVendasAtivo();
-  const valor = c => vendas ? c.vendas : c.quantidade;
-  const maximo = Math.max(1, ...caixas.map(valor));
+  const unidades = el('heatmapMetrica').value === 'ocupacao';
+  const valor = c => vendas ? c.vendas : unidades ? c.estoque.units : c.quantidade;
+  const completas=caixas.filter(c=>vendas?c.completa:unidades?c.estoque.complete:true);
+  const maximo = Math.max(0, ...completas.map(valor));
   const temaClaro = document.documentElement.dataset.theme === "light";
+  el('heatmapColorScale').dataset.sales=String(vendas);
+  el('heatmapScaleMax').textContent=`${numeroInsights(maximo)} ${vendas?'vendas':unidades?'un.':'SKUs'}`;
   const grupos = {};
   filtradas.forEach(c => {
     if (!grupos[c.setor]) grupos[c.setor] = [];
@@ -4893,14 +4804,16 @@ function renderMapaCaixasHeatmap(caixas, filtroSetor) {
       if (vendas && !c.conhecidas) {
         return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:var(--cinza4);--heat-bg:var(--preto3);"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>—</b><span>Sem resumo</span></div>`;
       }
-      const proporcao = valor(c) / maximo;
-      const hue = Math.round(120 * (1 - proporcao));
-      const borda = `hsl(${hue} 78% ${temaClaro ? 38 : 52}%)`;
-      const fundo = `hsl(${hue} 72% 45% / ${temaClaro ? ".15" : ".18"})`;
-      return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:${borda};--heat-bg:${fundo};" title="${c.quantidade} SKU(s)"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>${vendas && !c.completa ? '≥' : ''}${numeroInsights(valor(c))}</b><span>${vendas ? (c.completa ? 'vendas' : `${c.conhecidas}/${c.quantidade} SKUs · parcial`) : 'SKU(s)'}</span></div>`;
+      if(unidades&&!c.estoque.complete){
+        return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:var(--cinza4);--heat-bg:var(--preto3)"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>—</b><span>${c.estoque.known}/${c.quantidade} SKUs consultados</span></div>`;
+      }
+      const cores = WarehouseMetrics.color(valor(c),maximo,vendas,temaClaro);
+      const completa=!vendas||c.completa;
+      const borda=completa?cores.border:'var(--cinza4)',fundo=completa?cores.background:'var(--preto3)';
+      return `<div class="heatmap-cell" role="button" tabindex="0" aria-expanded="false" data-posicao="${escapeHtmlAttr(c.posicao)}" style="--heat-border:${borda};--heat-bg:${fundo};" title="${c.quantidade} SKU(s) · escala linear de 0 a ${numeroInsights(maximo)}"><strong>${escapeHtmlAttr(c.posicao)}</strong><b>${vendas && !c.completa ? '≥' : ''}${numeroInsights(valor(c))}</b><span>${vendas ? (c.completa ? 'vendas' : `${c.conhecidas}/${c.quantidade} SKUs · parcial`) : unidades?'unidades':'SKU(s)'}</span></div>`;
     }).join("");
     return `<section class="heatmap-sector" style="--setor-cor:${setorVisual.cor};">
-      <div class="heatmap-sector-title"><strong>SETOR ${escapeHtmlAttr(setor)}</strong><span>${numeroInsights(total)} ${vendas ? 'vendas' : 'SKU(s)'} em ${lista.length} caixa(s)</span></div>
+      <div class="heatmap-sector-title"><strong>SETOR ${escapeHtmlAttr(setor)}</strong><span>${lista.some(c=>c.quantidade>0&&(vendas?!c.completa:unidades?!c.estoque.complete:false))?'≥ ':''}${numeroInsights(total)} ${vendas ? 'vendas' : unidades?'unidades':'SKU(s)'} em ${lista.length} caixa(s)</span></div>
       <div class="heatmap-grid">${celulas}</div>
       <div class="box-insights-host"></div>
     </section>`;
@@ -4920,25 +4833,35 @@ function renderMapaCaixasHeatmap(caixas, filtroSetor) {
     cell.addEventListener('click', abrir);
     cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
   });
+  window.HL_UI?.reveal(alvo);
 }
 
-function renderHeatmap(rows) {
+function renderHeatmap(rows,keepBox=false) {
+  const openCell=keepBox?el('heatmapMapa').querySelector('[aria-expanded="true"]'):null;
+  const openPosition=openCell?.dataset.posicao;
+  const openHost=openCell?.closest('.heatmap-sector').querySelector('.box-insights-host');
   heatmapDados = rows;
   const caixas = caixasParaHeatmap(rows);
   const vendas = mapaVendasAtivo();
-  const valor = c => vendas ? c.vendas : c.quantidade;
-  const unidade = vendas ? 'vendas' : 'SKU(s)';
-  el('heatmapView').querySelector('h1').textContent = vendas ? 'Mapa de calor de vendas' : 'Mapa de calor do estoque';
-  el('heatmapView').querySelector('.heatmap-head p').textContent = vendas ? 'Saidas com valor positivo dos SKUs atuais de cada caixa' : 'Distribuicao de SKUs por setor, prateleira e caixa';
+  const unidades=el('heatmapMetrica').value==='ocupacao';
+  const valor = c => vendas ? c.vendas : unidades?c.estoque.units:c.quantidade;
+  const unidade = vendas ? 'vendas' : unidades?'un.':'SKU(s)';
+  el('heatmapView').querySelector('h1').textContent = vendas ? 'Mapa de calor de vendas' : unidades?'Ocupacao por unidades':'Mapa de calor de SKUs';
+  el('heatmapView').querySelector('.heatmap-head p').textContent = vendas ? 'Saidas com valor positivo dos SKUs atuais de cada caixa' : unidades?'Unidades disponiveis por setor, prateleira e caixa':'Distribuicao de SKUs por setor, prateleira e caixa';
   document.title = vendas ? 'Mapa de vendas - HL Coordenadas' : 'Mapa de calor - HL Coordenadas';
-  el('heatmapSetoresTitulo').textContent = vendas ? 'Setores com mais vendas' : 'Setores com mais SKUs';
-  el('heatmapMaisTitulo').textContent = vendas ? 'Caixas mais vendidas' : 'Caixas com mais SKUs';
-  el('heatmapMenosTitulo').textContent = vendas ? 'Caixas menos vendidas' : 'Caixas com menos SKUs';
+  el('heatmapSetoresTitulo').textContent = vendas ? 'Setores com mais vendas' : unidades?'Setores com mais unidades':'Setores com mais SKUs';
+  el('heatmapMaisTitulo').textContent = vendas ? 'Caixas mais vendidas' : unidades?'Caixas com mais unidades':'Caixas com mais SKUs';
+  el('heatmapMenosTitulo').textContent = vendas ? 'Caixas menos vendidas' : unidades?'Caixas com menos unidades':'Caixas com menos SKUs';
   const setoresMap = new Map();
-  caixas.forEach(c => setoresMap.set(c.setor, (setoresMap.get(c.setor) || 0) + valor(c)));
-  const setores = [...setoresMap.entries()].map(([setor, quantidade]) => ({ setor, quantidade }))
+  caixas.forEach(c => {
+    const setor=setoresMap.get(c.setor)||{setor:c.setor,quantidade:0,completa:true};
+    setor.quantidade+=valor(c);
+    setor.completa&&=vendas?(c.quantidade===0||c.completa):unidades?c.estoque.complete:true;
+    setoresMap.set(c.setor,setor);
+  });
+  const setores = [...setoresMap.values()]
     .sort((a,b) => b.quantidade - a.quantidade || parseSortKey(a.setor) - parseSortKey(b.setor));
-  const elegiveis = vendas ? caixas.filter(c => c.completa) : caixas;
+  const elegiveis = vendas ? caixas.filter(c => c.completa) : unidades?caixas.filter(c=>c.estoque.complete):caixas;
   const ocupadas = elegiveis.filter(c => c.quantidade > 0);
   const mais = [...ocupadas].sort((a,b) => valor(b) - valor(a) || a.posicao.localeCompare(b.posicao)).slice(0, 10);
   const menos = [...elegiveis].sort((a,b) => valor(a) - valor(b) || a.posicao.localeCompare(b.posicao)).slice(0, 10);
@@ -4956,8 +4879,12 @@ function renderHeatmap(rows) {
     const total = known.reduce((n,s) => n + heatmapVendas.get(s).vendas, 0);
     el('heatmapStats').innerHTML = `<div class="heatmap-stat"><span>Vendas dos SKUs atuais</span><strong>${numeroInsights(total)}</strong></div><div class="heatmap-stat"><span>SKUs com resumo</span><strong>${known.length}/${unicos.length}</strong></div><div class="heatmap-stat"><span>Caixas completas</span><strong>${elegiveis.length}/${caixas.length}</strong></div><div class="heatmap-stat"><span>Mais vendida</span><strong>${escapeHtmlAttr(mais[0]?.posicao || '—')}</strong></div><div class="heatmap-stat"><span>Menos vendida</span><strong>${escapeHtmlAttr(menos[0]?.posicao || '—')}</strong></div>`;
     el('salesMapStatus').textContent = `${known.length}/${unicos.length} SKUs com resumo. Ranking: caixas com todos os SKUs consultados. Soma das saidas por SKU; nao e contagem de pedidos unicos.`;
+  } else if(unidades){
+    const known=caixas.filter(c=>c.estoque.complete),total=known.reduce((n,c)=>n+c.estoque.units,0);
+    el('heatmapStats').innerHTML=`<div class="heatmap-stat"><span>Unidades consultadas</span><strong>${numeroInsights(total)}</strong></div><div class="heatmap-stat"><span>Caixas completas</span><strong>${known.length}/${caixas.length}</strong></div><div class="heatmap-stat"><span>SKUs cadastrados</span><strong>${rows.length}</strong></div><div class="heatmap-stat"><span>Maior ocupacao</span><strong>${escapeHtmlAttr(mais[0]?.posicao||'—')}</strong></div><div class="heatmap-stat"><span>Menor ocupacao</span><strong>${escapeHtmlAttr(menos[0]?.posicao||'—')}</strong></div>`;
+    el('salesMapStatus').textContent='Escala relativa por unidades disponiveis. Caixas incompletas nao entram no ranking.';
   } else el('salesMapStatus').textContent = '';
-  el("heatmapSetores").innerHTML = rankingHeatmap(setores.slice(0, 10), i => `Setor ${i.setor}`, i => i.quantidade, unidade);
+  el("heatmapSetores").innerHTML = rankingHeatmap(setores.filter(i=>i.completa).slice(0, 10), i => `Setor ${i.setor}`, i => i.quantidade, unidade);
   el("heatmapMais").innerHTML = rankingHeatmap(mais, i => i.posicao, valor, unidade);
   el("heatmapMenos").innerHTML = rankingHeatmap(menos, i => i.posicao, valor, unidade);
 
@@ -4965,9 +4892,13 @@ function renderHeatmap(rows) {
   const selecionado = filtro.value;
   filtro.innerHTML = `<option value="">Todos os setores</option>` + setores
     .slice().sort((a,b) => parseSortKey(a.setor) - parseSortKey(b.setor))
-    .map(i => `<option value="${escapeHtmlAttr(i.setor)}">Setor ${escapeHtmlAttr(i.setor)} (${i.quantidade})</option>`).join("");
+    .map(i => `<option value="${escapeHtmlAttr(i.setor)}">Setor ${escapeHtmlAttr(i.setor)} (${i.completa?'':'≥ '}${numeroInsights(i.quantidade)})</option>`).join("");
   if ([...filtro.options].some(o => o.value === selecionado)) filtro.value = selecionado;
   renderMapaCaixasHeatmap(caixas, filtro.value);
+  if(openHost&&openPosition){
+    const replacement=[...el('heatmapMapa').querySelectorAll('.heatmap-cell')].find(cell=>cell.dataset.posicao===openPosition);
+    if(replacement){replacement.setAttribute('aria-expanded','true');replacement.closest('.heatmap-sector').querySelector('.box-insights-host').replaceWith(openHost);}
+  }
 }
 
 async function carregarHeatmap() {
@@ -5106,6 +5037,6 @@ if (!MODO_HEATMAP) {
   setInterval(manterProjetoAtivo, SEIS_HORAS_MS);
 }
 </script>
-<small class="version-corner">v7.0</small>
+<small class="version-corner">v7.1</small>
 </body>
 </html>
