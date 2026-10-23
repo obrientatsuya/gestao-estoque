@@ -97,7 +97,13 @@ class Handler(BaseHTTPRequestHandler):
         if path=='/audit-current':return self.send({'ok':True,'itens':self.filtered(STOCK,q)})
         if path=='/consultar':return self.send({'encontrado':True,'sku':q.get('sku',['HL-2048'])[0],'descricao':NAMES[0],'localizacao':'1S-P1C1','id':1})
         if path=='/sales-summary':return self.send({'ok':True,'itens':SUMMARIES})
-        if path=='/sales-sync':return self.send({'ok':True,'ativo':False,'publicador':False})
+        if path=='/sales-sync':return self.send({'ok':True,'ativo':False,'publicador':True,'status':'concluido','resultado':'com_erros','total':3,'atual':3,'publicados':2,'falhas':1,'mensagem':'2 SKUs confirmados no Supabase; 1 falha.','logs':[
+            {'hora':STAMP,'sku':'HL-2048','etapa':'tiny','nivel':'info','mensagem':'Consultando produto e movimentos no Tiny.'},
+            {'hora':STAMP,'sku':'HL-2048','etapa':'calculo','nivel':'info','mensagem':'150 movimentos lidos; 111 vendas; 148 unidades.'},
+            {'hora':STAMP,'sku':'HL-2048','etapa':'supabase','nivel':'info','mensagem':'Enviando resumo ao Supabase; aguardando confirmacao.'},
+            {'hora':STAMP,'sku':'HL-2048','etapa':'confirmado','nivel':'sucesso','mensagem':'SUCESSO: Supabase confirmou a gravacao deste SKU.'},
+            {'hora':STAMP,'sku':'HL-2049','etapa':'confirmado','nivel':'sucesso','mensagem':'SUCESSO: Supabase confirmou a gravacao deste SKU.'},
+            {'hora':STAMP,'sku':'HL-2050','etapa':'erro','nivel':'erro','mensagem':'HTTP 403: acesso recusado. Resumo anterior preservado.'}]})
         if path=='/box-insights-job':return self.send({'ok':True,**JOBS[q['id'][0]]})
         if path=='/__demo_state':return self.send({'acoes':BOX_ACTIONS,'estoque':STOCK})
         if path=='/api/settings':return self.send({'watch_dir':'Desktop/Notas fiscais','printer':'Impressora de etiquetas','printers':['Impressora de etiquetas'],'operators':[{'name':'Anderson'},{'name':'Luiz'}]})

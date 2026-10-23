@@ -28,6 +28,12 @@ Atualizar o estoque da caixa, enviar localizacao e imprimir etiquetas exigem
 autorizacao Tiny propria. Ler unidades e vendas ja compartilhadas nao exige login Tiny.
 O Publicador nao leva access/refresh tokens de outro PC: a autorizacao acontece no destino.
 
+**Mais > Atualizar vendas** mostra o andamento da publicacao por SKU: consulta,
+calculo, envio e confirmacao do Supabase, com contadores de sucessos/falhas e filtro
+por SKU. O envio e imediato por SKU, nao apenas ao fim do lote. Os ultimos 100
+eventos da execucao ficam visiveis e sao lembrados ao reabrir o Publicador;
+o SQLite local guarda ate 2000 eventos. Esses logs sao somente de vendas.
+
 ### O que significa VENDAS
 
 Contagem de movimentos de **saida com valor positivo**, deduplicados por identificador.
@@ -162,6 +168,7 @@ Os testes automatizados usam clientes simulados e bancos temporarios.
 ![Mapa de ocupacao](docs/screenshots/mapa-ocupacao.jpg)
 ![Mapa de vendas](docs/screenshots/mapa-vendas.jpg)
 ![Caixas por vendas](docs/screenshots/mapa-vendas-caixas.jpg)
+![Acompanhamento da publicacao de vendas, dados sinteticos](docs/screenshots/publicacao-vendas.jpg)
 ![Auditoria por SKU](docs/screenshots/auditoria.jpg)
 ![Estrutura de setores e prateleiras](docs/screenshots/estrutura.jpg)
 

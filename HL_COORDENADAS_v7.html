@@ -1637,7 +1637,7 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
 .heatmap-mode-switch select { background:var(--preto3); color:var(--branco); border:1px solid var(--cinza4); border-radius:6px; padding:8px; font:inherit; }
 #salesMapStatus { color:var(--cinza2); font-size:12px; overflow-wrap:anywhere; }
 </style>
-<link rel="stylesheet" href="/ui/v7.css?v=7.1">
+<link rel="stylesheet" href="/ui/v7.css?v=7.1-logs">
 <script src="/ui/vendor/lucide.js" defer></script>
 <script src="/ui/warehouse-metrics.js?v=7.1"></script>
 <script src="/ui/v7.js?v=7.1" defer></script>
@@ -1690,6 +1690,12 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
   <progress id="invoiceImportProgress" max="100" value="0" aria-label="Progresso da consulta de logs"></progress>
   <div id="invoiceImportCount">0 SKUs</div>
   <div id="invoiceImportStatus" role="status"></div>
+  <section id="salesPublicationLogs" hidden aria-label="Logs de publicacao de vendas">
+    <div id="salesPublicationCounts" role="status"></div>
+    <input id="salesLogSku" type="search" placeholder="Filtrar logs por SKU" aria-label="Filtrar logs de vendas por SKU">
+    <div id="salesLogRows" role="log" aria-label="Eventos de vendas"></div>
+    <small>Ultimos 100 eventos da execucao. Sucesso significa confirmacao da gravacao pelo Supabase.</small>
+  </section>
   <div class="invoice-import-actions">
     <button class="btn-header" id="btnPausarImportacao" hidden>Pausar</button>
     <button class="btn-header" id="btnIniciarImportacao">Consultar logs e publicar</button>
@@ -4949,11 +4955,24 @@ el("heatmapFiltroSetor").addEventListener("change", () => renderMapaCaixasHeatma
 let importPollTimer = null;
 let importRequestPending = false;
 let importLastProgress = '';
+let salesLogEvents=[];
+function renderSalesLogs(){
+  const host=el('salesLogRows'),filter=el('salesLogSku').value.trim().toUpperCase();
+  const bottom=host.scrollHeight-host.scrollTop-host.clientHeight<40;
+  host.innerHTML=salesLogEvents.filter(e=>!filter||String(e.sku).includes(filter)).map(e=>`<div class="sales-log-row" data-level="${escapeHtmlAttr(e.nivel)}"><time>${escapeHtmlAttr(formatarDataHora(e.hora))}</time><strong>${escapeHtmlAttr(e.sku||'LOTE')}</strong><span>${escapeHtmlAttr(e.mensagem)}</span></div>`).join('')||'<div class="sales-log-empty">Nenhum evento de vendas.</div>';
+  if(bottom)host.scrollTop=host.scrollHeight;
+}
+el('salesLogSku').addEventListener('input',renderSalesLogs);
 function renderImportacao(data) {
   const percentage = data.total ? (data.atual || 0) / data.total * 100 : 0;
   el('invoiceImportProgress').value = percentage;
   el('invoiceImportCount').textContent = `${numeroInsights(data.atual || 0)} / ${data.total == null ? '—' : numeroInsights(data.total)} SKUs · ${numeroInsights(percentage)}%`;
   el('invoiceImportStatus').textContent = (data.erros || []).slice(-3).join(' | ') || data.mensagem || (data.publicador ? 'Pronto para consultar os logs e publicar o resumo' : 'Somente leitura. Configure vendas_publicador.json no PC autorizado.');
+  el('salesPublicationLogs').hidden=!data.publicador;
+  el('invoiceImportDialog').classList.toggle('publisher-logs',!!data.publicador);
+  el('salesPublicationCounts').textContent=`${numeroInsights(data.publicados||0)} confirmados no Supabase · ${numeroInsights(data.falhas||0)} falhas · ${data.ativo?'EM ANDAMENTO':data.resultado||data.status||'PRONTO'}`;
+  salesLogEvents=data.logs||[];
+  renderSalesLogs();
   el('btnIniciarImportacao').hidden = data.ativo;
   el('btnPausarImportacao').hidden = !data.ativo;
   el('btnPausarImportacao').disabled = data.status === 'pausando' || importRequestPending;

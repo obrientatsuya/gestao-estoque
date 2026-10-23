@@ -28,6 +28,17 @@ button{font-weight:550}
 .header-menu-pop .btn-header:hover{background:var(--preto4)}
 .motion-option{display:flex;align-items:center;justify-content:space-between;min-height:36px;padding:7px 12px;border-top:1px solid var(--cinza4);font-size:12px;color:var(--cinza1);cursor:pointer}
 .motion-option input{accent-color:var(--roxo);width:17px;height:17px;cursor:pointer}
+#invoiceImportDialog.publisher-logs{width:850px;max-height:88dvh;overflow:auto}
+#salesPublicationCounts{font-size:14px;font-weight:600;margin-bottom:12px}
+#salesLogSku{width:100%;margin-bottom:10px}
+#salesLogRows{max-height:340px;overflow:auto;border-block:1px solid var(--cinza4);font-size:12px}
+.sales-log-row{display:grid;grid-template-columns:130px 100px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--cinza4);overflow-wrap:anywhere}
+.sales-log-row time{color:var(--cinza2);font-variant-numeric:tabular-nums}
+.sales-log-row[data-level="sucesso"] span{color:var(--verde,#299964)}
+.sales-log-row[data-level="erro"] span{color:var(--erro)}
+#salesPublicationLogs small{display:block;color:var(--cinza2);margin:10px 0 16px;font-size:11px}
+.sales-log-empty{padding:20px 0;color:var(--cinza2)}
+@media(max-width:600px){.sales-log-row{grid-template-columns:1fr 1fr}.sales-log-row span{grid-column:1/-1}}
 .header-menu-pop .mobile-module{display:none}
 .theme-toggle{width:36px;padding:6px}
 #statusIndicator,#statusErpIndicator{font-size:11px;font-weight:450;gap:6px}

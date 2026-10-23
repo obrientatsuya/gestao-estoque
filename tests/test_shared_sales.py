@@ -147,6 +147,33 @@ class TestShared(unittest.TestCase):
         self.assertEqual(len(self.service.all_shared()),1001)
         self.assertIn('offset=1000',calls[1])
 
+    def test_sales_success_is_logged_only_after_cloud_confirmation_and_survives_restart(self):
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(['001'],refresh=True))
+            self.assertEqual(job['publicados'],1)
+            self.assertEqual(job['falhas'],0)
+            self.assertEqual([e['etapa'] for e in job['logs']],['inicio','tiny','calculo','supabase','confirmado','fim'])
+            restarted=SharedSales(self.insights,'https://example.invalid','public',self.tmp.name,{'edicao':'publicador','chave_publicador':'test-key'})
+            status=restarted.status()
+            self.assertEqual(status['publicados'],1)
+            self.assertFalse(status['ativo'])
+            self.assertEqual(status['logs'][-1]['etapa'],'fim')
+
+    def test_sales_failure_is_visible_before_completion_and_never_reports_success(self):
+        self.client.denied=True
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(['001'],refresh=True))
+        self.assertEqual(job['publicados'],0)
+        self.assertEqual(job['falhas'],1)
+        self.assertEqual(job['resultado'],'com_erros')
+        self.assertTrue(any(e['nivel']=='erro' and '403' in e['mensagem'] for e in job['logs']))
+        self.assertFalse(any(e['etapa']=='confirmado' for e in job['logs']))
+
+    def test_reader_stock_update_does_not_create_sales_logs(self):
+        self.done(self.service.start(['001'],refresh=True))
+        with self.insights.connect() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM sales_publication_log').fetchone()[0],0)
+
 
 if __name__=='__main__':
     unittest.main()

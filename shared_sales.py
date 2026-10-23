@@ -27,6 +27,22 @@ class SharedSales:
         self.occupancy = BoxOccupancy(insights,lambda path,payload:self.request(path,payload))
         with insights.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS shared_sales(sku TEXT PRIMARY KEY,data TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS sales_publication_log(id INTEGER PRIMARY KEY AUTOINCREMENT,job TEXT,data TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS sales_publication_state(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)')
+
+    def sales_event(self,jid,stage,message,sku='',level='info',**values):
+        event={'hora':datetime.now().astimezone().isoformat(),'etapa':stage,'mensagem':message,'sku':sku,'nivel':level,**values}
+        with self.lock:
+            job=self.jobs[jid]
+            job['mensagem']=message
+            events=job.setdefault('logs',[])
+            events.append(event)
+            del events[:-100]
+            snapshot={k:v for k,v in job.items() if k!='dados'}
+            with self.insights.connect() as db:
+                db.execute('INSERT INTO sales_publication_log(job,data) VALUES(?,?)',(jid,json.dumps(event)))
+                db.execute('DELETE FROM sales_publication_log WHERE id <= (SELECT max(id)-2000 FROM sales_publication_log)')
+                db.execute('INSERT OR REPLACE INTO sales_publication_state VALUES(1,?)',(json.dumps(snapshot),))
 
     def publisher_key(self):
         if self.edition.get('edicao') == 'leitor':
@@ -125,7 +141,8 @@ class SharedSales:
             self.stop.clear()
             jid = uuid.uuid4().hex
             self.jobs = dict(list(self.jobs.items())[-29:])
-            self.jobs[jid] = {'status':'rodando','mensagem':'Lendo resumo compartilhado...','erros':[]}
+            self.jobs[jid] = {'status':'rodando','mensagem':'Lendo resumo compartilhado...','erros':[],
+                              'publicados':0,'falhas':0,'logs':[]}
             self.current_job = jid
         threading.Thread(target=self.run,args=(jid,skus,refresh,position),daemon=True).start()
         return jid
@@ -136,6 +153,7 @@ class SharedSales:
         fresh = set()
         try:
             key = self.publisher_key()
+            if refresh and key:self.sales_event(jid,'inicio','Consulta de vendas iniciada. Cada SKU e enviado imediatamente apos o calculo.')
             if skus is None:
                 if not key:
                     raise ValueError('Configure a chave do publicador neste PC antes de consultar os logs.')
@@ -145,6 +163,7 @@ class SharedSales:
                     if not isinstance(rows,list):
                         raise ValueError('Lista de SKUs invalida')
                     skus.extend(str(r['sku']).strip().upper() for r in rows)
+                    self.sales_event(jid,'lista',f'{len(skus)} SKUs encontrados no Supabase.')
                     if len(rows)<1000:
                         break
                     offset += len(rows)
@@ -177,6 +196,7 @@ class SharedSales:
                     with self.lock:
                         self.jobs[jid]['mensagem'] = f'Logs de estoque: {index+1}/{len(skus)} · {sku}'
                     try:
+                        self.sales_event(jid,'tiny','Consultando produto e movimentos no Tiny.',sku)
                         if position is None:self.insights.load_product(client,sku)
                         elif sku not in fresh:continue
                         with self.insights.connect() as db:
@@ -185,35 +205,61 @@ class SharedSales:
                         if self.stop.is_set():
                             break
                         totals = calculate(rows)
+                        self.sales_event(jid,'calculo',f"{totals['registros_lidos']} movimentos lidos; {totals['vendas']} vendas; {totals['unidades_vendidas']:g} unidades.",sku)
                         summary = {'sku':sku,'vendas':totals['vendas'],'unidades':totals['unidades_vendidas'],
                                    'inicio':start,'fim':end,'calculado_em':datetime.now().astimezone().isoformat()}
                         # Somente o agregado sai deste PC. Logs, valores, clientes e tokens nao sao publicados.
+                        self.sales_event(jid,'supabase','Enviando resumo ao Supabase; aguardando confirmacao.',sku)
                         result = self.request('rpc/publicar_resumo_vendas',{'p_chave':key,'p_resumos':[summary]})
-                        if not isinstance(result,list) or len(result)!=1:
+                        if not isinstance(result,list) or len(result)!=1 or result[0].get('sku')!=sku:
                             raise ValueError('Publicacao nao confirmada pelo Supabase')
                         self.save_shared(result)
+                        with self.lock:self.jobs[jid]['publicados']+=1
+                        self.sales_event(jid,'confirmado','SUCESSO: Supabase confirmou a gravacao deste SKU.',sku,'sucesso',vendas=totals['vendas'],unidades=totals['unidades_vendidas'])
                     except (Exception,SystemExit) as exc:
                         code = getattr(exc.__cause__ or exc, 'code', None)
                         message = 'Tiny recusou os logs (403). Resumo anterior preservado.' if code == 403 else str(exc)
                         errors.append(f'{sku}: {message}')
+                        with self.lock:
+                            self.jobs[jid]['falhas']+=1
+                            self.jobs[jid]['erros']=list(errors)
+                        safe=f'HTTP {code}: acesso recusado ou limite da API. Resumo anterior preservado.' if code else 'Falha na consulta ou publicacao. Resumo anterior preservado.'
+                        self.sales_event(jid,'erro',safe,sku,'erro')
+                        with self.lock:self.jobs[jid]['atual']=index+1
                         if code in (401,403,429):
                             break
                     with self.lock:
                         self.jobs[jid]['atual'] = index+1
         except (Exception,SystemExit) as exc:
             errors.append(str(exc))
+            if refresh and self.publisher_key():
+                with self.lock:self.jobs[jid]['falhas']+=1
+                self.sales_event(jid,'erro','Nao foi possivel concluir a consulta de vendas. Confira autorizacao e conexao.','', 'erro')
         finally:
             data = self.cache((skus or [])[:150])
             if occupancy:data['ocupacao'] = occupancy
             with self.lock:
                 self.jobs[jid].update(status='concluido',mensagem='Atualizacao finalizada',erros=errors,dados=data)
                 self.busy = False
+            if refresh and self.publisher_key():
+                with self.lock:
+                    job=self.jobs[jid]
+                    state='pausado' if self.stop.is_set() else 'com_erros' if errors else 'concluido'
+                    job['resultado']=state
+                    message=f"{state.upper()}: {job['publicados']} SKUs confirmados no Supabase; {job['falhas']} falhas."
+                self.sales_event(jid,'fim',message,level='erro' if errors else 'info')
 
     def status(self, pause=False):
         with self.lock:
             if pause:
                 self.stop.set()
             job = {k:v for k,v in (self.jobs.get(self.current_job) or {}).items() if k != 'dados'}
+            if not job and self.publisher_key():
+                with self.insights.connect() as db:record=db.execute('SELECT data FROM sales_publication_state WHERE id=1').fetchone()
+                if record:
+                    job=json.loads(record[0])
+                    if job.get('status')=='rodando':
+                        job.update(status='interrompido',mensagem='Execucao anterior interrompida. Os SKUs ja confirmados continuam no Supabase.')
             return {**job,'ativo':self.busy,'publicador':bool(self.publisher_key())}
 
     def job(self, jid):
