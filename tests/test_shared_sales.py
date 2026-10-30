@@ -182,6 +182,21 @@ class TestShared(unittest.TestCase):
         self.assertTrue(any('limit=20' in path for path in self.client.calls))
         self.assertFalse(self.published)
 
+    def test_publisher_accepts_actual_preco_field_and_uploads_nonzero_sales(self):
+        request=self.client.request_json
+        def with_preco(method,path):
+            response=request(method,path)
+            if 'logs-movimentacao' in path:
+                for row in response['body']['itens']:row['preco']=row.pop('valor')
+            return response
+        self.client.request_json=with_preco
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            job=self.done(self.service.start(['001'],refresh=True))
+        self.assertEqual(job['erros'],[])
+        self.assertEqual(job['publicados'],1)
+        self.assertEqual(self.cloud['001']['vendas'],2)
+        self.assertEqual(self.cloud['001']['unidades'],5)
+
     def test_diagnostic_excludes_credentials_free_text_and_identifiers(self):
         report=self.service.save_diagnostic('001',{'access_token':'VERY_PRIVATE_TOKEN','cliente':{'nome':'PRIVATE_NAME','cpf':'PRIVATE_CPF'},'id':123456,'valorVenda':'38,22','tipo':'S','extra':{'authorization':'VERY_PRIVATE_AUTH'}})
         serialized=json.dumps(report)

@@ -26,6 +26,24 @@ class TestCalculate(unittest.TestCase):
         self.assertEqual(result['unidades_vendidas'], 5)
         self.assertEqual(result['registros_ignorados'], 4)
 
+    def test_tiny_stock_logs_preco_field_counts_only_positive_exits(self):
+        rows=[{'id':1,'tipo':'S','quantidade':2,'preco':10.5},
+              {'id':2,'tipo':'S','quantidade':1,'preco':'12,50'},
+              {'id':3,'tipo':'S','quantidade':8,'preco':0},
+              {'id':4,'tipo':'E','quantidade':3,'preco':10.5},
+              {'id':5,'tipo':'B','quantidade':4,'preco':0},
+              {'id':6,'tipo':'S','quantidade':1,'preco':-2}]
+        result=calculate(rows+[rows[0]])
+        self.assertEqual(result['vendas'],2)
+        self.assertEqual(result['unidades_vendidas'],3)
+        self.assertEqual(result['registros_ignorados'],4)
+
+    def test_missing_invalid_and_zero_prices_remain_distinct(self):
+        for value in (None,'invalido',True):
+            with self.assertRaises(ValueError):
+                calculate([{'id':1,'tipo':'S','quantidade':1,'preco':value}])
+        self.assertEqual(calculate([{'id':1,'tipo':'S','quantidade':1,'preco':0}])['vendas'],0)
+
     def test_decimal_quantities_and_zero_quantity(self):
         result = calculate([{'id':i, 'tipo':'S', 'valor':1, 'quantidade':q}
                             for i,q in enumerate(['0,1','0,2','0,0'])])

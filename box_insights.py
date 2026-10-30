@@ -161,10 +161,12 @@ class BoxInsights:
             if kind in ('E','B','ENTRADA','BALANCO','BALANÇO'):
                 return None
             raise ValueError('Movimento sem tipo reconhecido; contagem nao confirmada')
-        field = next((k for k in ('valor','precoUnitario','valorUnitario') if item.get(k) is not None),None)
+        field = next((k for k in ('valor','precoUnitario','valorUnitario','preco') if item.get(k) is not None),None)
         if field is None:
             raise ValueError('Tiny nao informou o valor da saida; contagem nao confirmada')
         value = number(item[field])
+        if value is None:
+            raise ValueError('Tiny informou valor da saida invalido; contagem nao confirmada')
         if value <= 0:
             return None
         quantity = number(item.get('quantidade'))

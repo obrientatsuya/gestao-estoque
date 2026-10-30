@@ -1,7 +1,7 @@
 # HL Coordenadas
 
 Sistema interno de localizacao de estoque e conferencia digital de notas fiscais.
-Os dois modulos rodam no mesmo processo Windows e abrem no navegador. V7.2.
+Os dois modulos rodam no mesmo processo Windows e abrem no navegador. V7.2.2.
 
 ![Coordenadas no tema claro](docs/screenshots/coordenadas-claro.jpg)
 
@@ -45,6 +45,8 @@ Falhas de interpretacao tambem preservam uma amostra sanitizada no SQLite local
 ### O que significa VENDAS
 
 Contagem de movimentos de **saida com valor positivo**, deduplicados por identificador.
+O parser reconhece o campo `preco` dos logs Tiny, alem dos aliases anteriores;
+preco zero nao conta e valor ausente/invalido nao e convertido em zero.
 Nao e contagem de pedidos unicos, valor financeiro ou quantidade de unidades.
 O agregado tambem guarda as unidades e o periodo consultado.
 Ausencia de resumo, falha e 403 **nao viram zero vendas**.
