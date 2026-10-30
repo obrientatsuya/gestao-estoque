@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 from calcular_saidas_tiny import calculate, fetch_movements
 from box_occupancy import BoxOccupancy
+from sales_diagnostic import sanitized
 
 
 class SharedSales:
@@ -29,6 +30,28 @@ class SharedSales:
             db.execute('CREATE TABLE IF NOT EXISTS shared_sales(sku TEXT PRIMARY KEY,data TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS sales_publication_log(id INTEGER PRIMARY KEY AUTOINCREMENT,job TEXT,data TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS sales_publication_state(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS sales_diagnostics(sku TEXT PRIMARY KEY,data TEXT NOT NULL)')
+
+    def save_diagnostic(self,sku,body):
+        record={'sku':sku,'capturado_em':datetime.now().astimezone().isoformat(),
+                'observacao':'Amostra de ate 20 registros; textos e identificadores removidos. Nao e um total de vendas.',
+                'resposta':sanitized(body)}
+        with self.insights.connect() as db:
+            db.execute('INSERT OR REPLACE INTO sales_diagnostics VALUES(?,?)',(sku,json.dumps(record)))
+            db.execute('DELETE FROM sales_diagnostics WHERE rowid NOT IN (SELECT rowid FROM sales_diagnostics ORDER BY rowid DESC LIMIT 10)')
+        return record
+
+    def diagnostic(self,sku):
+        sku=str(sku or '').strip().upper()
+        if not sku or len(sku)>100:raise ValueError('Informe um SKU valido.')
+        if not self.publisher_key():raise ValueError('Use o EXE Publicador no PC autorizado.')
+        if self.busy:raise ValueError('Pause a atualizacao de vendas e aguarde encerrar antes do diagnostico.')
+        client=self.insights.client_factory()
+        self.insights.load_product(client,sku)
+        with self.insights.connect() as db:product=json.loads(db.execute('SELECT data FROM products WHERE sku=?',(sku,)).fetchone()[0])
+        query=urlencode({'dataInicio':'2000-01-01','dataFim':date.today().isoformat(),'limit':20,'offset':0})
+        response=client.request_json('GET',f"/estoque/{product['id']}/logs-movimentacao?"+query)
+        return self.save_diagnostic(sku,response.get('body'))
 
     def sales_event(self,jid,stage,message,sku='',level='info',**values):
         event={'hora':datetime.now().astimezone().isoformat(),'etapa':stage,'mensagem':message,'sku':sku,'nivel':level,**values}
@@ -207,7 +230,10 @@ class SharedSales:
                         rows = fetch_movements(client,product['id'],start,end)
                         if self.stop.is_set():
                             break
-                        totals = calculate(rows)
+                        try:totals = calculate(rows)
+                        except ValueError:
+                            self.save_diagnostic(sku,rows)
+                            raise
                         self.sales_event(jid,'calculo',f"{totals['registros_lidos']} movimentos lidos; {totals['vendas']} vendas; {totals['unidades_vendidas']:g} unidades.",sku)
                         summary = {'sku':sku,'vendas':totals['vendas'],'unidades':totals['unidades_vendidas'],
                                    'inicio':start,'fim':end,'calculado_em':datetime.now().astimezone().isoformat()}

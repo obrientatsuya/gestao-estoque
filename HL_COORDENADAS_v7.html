@@ -1637,10 +1637,10 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
 .heatmap-mode-switch select { background:var(--preto3); color:var(--branco); border:1px solid var(--cinza4); border-radius:6px; padding:8px; font:inherit; }
 #salesMapStatus { color:var(--cinza2); font-size:12px; overflow-wrap:anywhere; }
 </style>
-<link rel="stylesheet" href="/ui/v7.css?v=7.2">
+<link rel="stylesheet" href="/ui/v7.css?v=7.2.1">
 <script src="/ui/vendor/lucide.js" defer></script>
 <script src="/ui/warehouse-metrics.js?v=7.1"></script>
-<script src="/ui/v7.js?v=7.2" defer></script>
+<script src="/ui/v7.js?v=7.2.1" defer></script>
 </head>
 <body>
 
@@ -1692,6 +1692,8 @@ html[data-theme="light"] .caixa-cel.expandida { background: #f2edff; }
   <div id="invoiceImportStatus" role="status"></div>
   <section id="salesPublicationLogs" hidden aria-label="Logs de publicacao de vendas">
     <div id="salesPublicationCounts" role="status"></div>
+    <div class="sales-diagnostic-controls"><input id="salesDiagnosticSku" placeholder="SKU com erro, ex.: 003661" aria-label="SKU para diagnostico de vendas"><button class="btn-header" id="btnSalesDiagnostic">Baixar diagnostico</button></div>
+    <div id="salesDiagnosticStatus" role="status"></div>
     <input id="salesLogSku" type="search" placeholder="Filtrar logs por SKU" aria-label="Filtrar logs de vendas por SKU">
     <div id="salesLogRows" role="log" aria-label="Eventos de vendas"></div>
     <small>Ultimos 100 eventos da execucao. Sucesso significa confirmacao da gravacao pelo Supabase.</small>
@@ -5042,6 +5044,19 @@ function renderSalesLogs(){
   if(bottom)host.scrollTop=host.scrollHeight;
 }
 el('salesLogSku').addEventListener('input',renderSalesLogs);
+el('btnSalesDiagnostic').addEventListener('click',async()=>{
+  const button=el('btnSalesDiagnostic'),status=el('salesDiagnosticStatus');
+  const sku=el('salesDiagnosticSku').value.trim().toUpperCase();
+  if(!sku){status.textContent='Digite um SKU com erro.';return;}
+  button.disabled=true;status.textContent='Consultando amostra no Tiny; nenhuma venda sera publicada...';
+  try{
+    const r=await fetch(erpUrl('/sales-diagnostic'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sku})}),data=await r.json();
+    if(!r.ok||!data.ok)throw new Error(data.erro||'Diagnostico nao gerado.');
+    const url=URL.createObjectURL(new Blob([JSON.stringify(data.diagnostico,null,2)],{type:'application/json'}));
+    const link=document.createElement('a');link.href=url;link.download='diagnostico-vendas.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    status.textContent='Diagnostico baixado. Envie o arquivo diagnostico-vendas.json nesta conversa.';
+  }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
+});
 function renderImportacao(data) {
   const percentage = data.total ? (data.atual || 0) / data.total * 100 : 0;
   el('invoiceImportProgress').value = percentage;
@@ -5138,6 +5153,6 @@ if (!MODO_HEATMAP) {
   setInterval(manterProjetoAtivo, SEIS_HORAS_MS);
 }
 </script>
-<small class="version-corner">v7.2</small>
+<small class="version-corner">v7.2.1</small>
 </body>
 </html>

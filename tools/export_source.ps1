@@ -4,7 +4,7 @@ $destination = Join-Path $root 'repositorio_v7'
 if (!(Test-Path -LiteralPath (Join-Path $destination '.git'))) { throw 'Clone o repositorio em repositorio_v7 primeiro.' }
 $files = @(
     '.gitignore','README.md','requirements.txt','INICIAR_V7.bat',
-    'app_edition.py','runtime_config.py','box_insights.py','box_occupancy.py','shared_sales.py','warehouse_controls.py','supabase_bloqueio_caixas.sql',
+    'app_edition.py','runtime_config.py','box_insights.py','box_occupancy.py','shared_sales.py','sales_diagnostic.py','warehouse_controls.py','supabase_bloqueio_caixas.sql',
     'calcular_saidas_tiny.py','enviar_localizacoes_tiny_v3.py','tiny_v3_auth.py',
     'sync_erp_lote.py','unified_v7.py','HL_COORDENADAS_v7.html','HL_Coordenadas_V7.spec','version_v7.txt',
     'supabase_migracao.sql','supabase_resumo_vendas.sql','supabase_chave_publicador.sql','supabase_ocupacao_unidades.sql','MIGRACAO_SEM_ANDAR.sql',

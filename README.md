@@ -34,6 +34,14 @@ por SKU. O envio e imediato por SKU, nao apenas ao fim do lote. Os ultimos 100
 eventos da execucao ficam visiveis e sao lembrados ao reabrir o Publicador;
 o SQLite local guarda ate 2000 eventos. Esses logs sao somente de vendas.
 
+Se uma saida nao puder ser interpretada, use **Mais > Atualizar vendas**, digite
+o SKU em **SKU com erro** e clique **Baixar diagnostico** no PC autorizado. A
+consulta le apenas uma pagina de 20 movimentos, nao publica vendas nem altera
+produtos. O JSON inclui nomes de campos, estrutura e valores numericos de
+quantidade/preco; credenciais, textos livres e identificadores sao removidos.
+Falhas de interpretacao tambem preservam uma amostra sanitizada no SQLite local
+`sales_diagnostics` (ate 10 SKUs). Nao trate essa amostra como historico completo.
+
 ### O que significa VENDAS
 
 Contagem de movimentos de **saida com valor positivo**, deduplicados por identificador.

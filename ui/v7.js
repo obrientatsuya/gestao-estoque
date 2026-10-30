@@ -4,7 +4,7 @@
     btnBuscar:['search',true], btnTema:['sun',true], btnTemaHeatmap:['sun',true],
     btnAuditoria:['scan-search',false], btnAuditoriaMobile:['scan-search',false], btnHeatmap:['layout-grid',false], btnSalesMap:['chart-no-axes-combined',false],
     btnHistorico:['history',false], btnSyncErp:['refresh-cw',false],
-    btnLogTiny:['list',false], btnResumoVendas:['chart-no-axes-combined',false],
+    btnLogTiny:['list',false], btnResumoVendas:['chart-no-axes-combined',false],btnSalesDiagnostic:['download',false],
     btnAutorizarTiny:['key-round',false], btnBackupHeader:['download',false],
     btnEstrutura:['settings-2',false], btnZoomMenos:['minus',true],btnZoomMais:['plus',true],
     btnMostrarCadastro:['plus',false], btnSalvar:['check',false],

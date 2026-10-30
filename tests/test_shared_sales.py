@@ -174,6 +174,22 @@ class TestShared(unittest.TestCase):
         with self.insights.connect() as db:
             self.assertEqual(db.execute('SELECT count(*) FROM sales_publication_log').fetchone()[0],0)
 
+    def test_diagnostic_only_reads_one_page_and_does_not_publish(self):
+        with patch.object(self.service,'publisher_key',return_value='test-key'):
+            report=self.service.diagnostic('001')
+        self.assertEqual(report['sku'],'001')
+        self.assertIn('itens',report['resposta'])
+        self.assertTrue(any('limit=20' in path for path in self.client.calls))
+        self.assertFalse(self.published)
+
+    def test_diagnostic_excludes_credentials_free_text_and_identifiers(self):
+        report=self.service.save_diagnostic('001',{'access_token':'VERY_PRIVATE_TOKEN','cliente':{'nome':'PRIVATE_NAME','cpf':'PRIVATE_CPF'},'id':123456,'valorVenda':'38,22','tipo':'S','extra':{'authorization':'VERY_PRIVATE_AUTH'}})
+        serialized=json.dumps(report)
+        for value in ('VERY_PRIVATE_TOKEN','PRIVATE_NAME','PRIVATE_CPF','123456','VERY_PRIVATE_AUTH'):
+            self.assertNotIn(value,serialized)
+        self.assertEqual(report['resposta']['valorVenda'],'38,22')
+        self.assertEqual(report['resposta']['tipo'],'S')
+
 
 if __name__=='__main__':
     unittest.main()

@@ -40,7 +40,7 @@ USER_DATA_DIR = pathlib.Path(os.getenv("HL_COORDENADAS_DATA_DIR") or (
 APP_DIR = str(BUNDLE_DIR)
 HTML_APP = "HL_COORDENADAS_v7.html"
 PORTA = 8766
-VERSAO_PONTE = "7.2"
+VERSAO_PONTE = "7.2.1"
 DELAY_LOTE_SEG = 0.6
 SYNC_LOG_DIR = str(USER_DATA_DIR / "output")
 AUDIT_DB = USER_DATA_DIR / "auditoria.sqlite3"
@@ -860,6 +860,14 @@ class Handler(BaseHTTPRequestHandler):
 
     if path == '/invoice-import':
       return json_response(self, {'ok':False,'erro':'Importacao de notas fiscais desativada temporariamente.'}, 409)
+    if path == '/sales-diagnostic':
+      try:
+        if warehouse.active:raise ValueError('Aguarde a atualizacao de unidades terminar.')
+        return json_response(self, {'ok':True,'diagnostico':shared_sales.diagnostic(data.get('sku'))})
+      except ValueError as exc:return json_response(self, {'ok':False,'erro':str(exc)},409)
+      except (Exception,SystemExit) as exc:
+        code=getattr(exc.__cause__ or exc,'code',None)
+        return json_response(self, {'ok':False,'erro':f'Consulta ao Tiny nao concluida (HTTP {code or "indisponivel"}). Verifique a autorizacao neste PC.'},502)
     if path == '/units-refresh':
       try:
         if shared_sales.busy:raise ValueError('Aguarde a atualizacao de vendas terminar antes de atualizar todas as unidades.')
